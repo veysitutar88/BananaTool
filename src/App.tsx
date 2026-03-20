@@ -696,8 +696,8 @@ export default function App() {
                       className="w-full px-2.5 py-2 pr-6 rounded-lg bg-black/40 border border-white/10 text-xs focus:outline-none focus:border-yellow-500/50 text-white placeholder:text-white/20"
                     />
                     {characterName && (
-                      <button type="button" onClick={() => setCharacterName('')}
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
+                      <button type="button" onClick={() => setCharacterName('')} aria-label="Clear name"
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
                         <X size={9} />
                       </button>
                     )}
@@ -730,8 +730,8 @@ export default function App() {
                     className="w-full px-2.5 py-2 rounded-lg bg-black/40 border border-white/10 text-[11px] focus:outline-none focus:border-red-500/30 text-white/60 placeholder:text-white/20 resize-none custom-scrollbar"
                   />
                   {negativePrompt && (
-                    <button type="button" onClick={() => setNegativePrompt('')}
-                      className="absolute top-1.5 right-1.5 p-0.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
+                    <button type="button" onClick={() => setNegativePrompt('')} aria-label="Clear negative prompt"
+                      className="absolute top-1.5 right-1.5 p-1.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
                       <X size={9} />
                     </button>
                   )}
@@ -844,8 +844,8 @@ export default function App() {
                 className="w-full h-20 bg-black/40 border border-white/10 rounded-xl p-3 text-xs focus:outline-none focus:border-yellow-500/40 transition-colors placeholder:text-white/25 disabled:opacity-50 resize-none custom-scrollbar"
               />
               {scenePrompt && !isBusy && (
-                <button type="button" onClick={() => setScenePrompt('')}
-                  className="absolute top-1.5 right-1.5 p-0.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
+                <button type="button" onClick={() => setScenePrompt('')} aria-label="Clear scene prompt"
+                  className="absolute top-1.5 right-1.5 p-1.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
                   <X size={9} />
                 </button>
               )}
@@ -864,7 +864,11 @@ export default function App() {
             <div className="flex gap-3 items-start">
               {/* Scene slot — landscape 4:3 ratio, cyan border, drag-and-drop */}
               <div
+                role="button"
+                tabIndex={isBusy ? -1 : 0}
+                aria-label="Upload scene reference image"
                 onClick={() => !isBusy && triggerUpload('scene-reference')}
+                onKeyDown={e => { if (!isBusy && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); triggerUpload('scene-reference'); } }}
                 onDragOver={e => { e.preventDefault(); if (!isBusy) setSceneDragOver(true); }}
                 onDragLeave={() => setSceneDragOver(false)}
                 onDrop={handleSceneDrop}
@@ -880,12 +884,14 @@ export default function App() {
                     <button
                       onClick={e => { e.stopPropagation(); triggerUpload('scene-reference'); }}
                       disabled={isBusy}
-                      className="absolute top-1 left-1 p-1 rounded-md bg-black/70 text-white/70 opacity-0 group-hover:opacity-100 hover:text-cyan-400 transition-all z-10"
+                      aria-label="Replace scene reference"
+                      className="absolute top-1 left-1 p-1.5 rounded-md bg-black/70 text-white/70 opacity-0 group-hover:opacity-100 hover:text-cyan-400 transition-all z-10"
                     ><RotateCcw size={11} /></button>
                     <button
                       onClick={e => { e.stopPropagation(); setSceneReference(null); }}
                       disabled={isBusy}
-                      className="absolute top-1 right-1 p-1 rounded-md bg-black/70 text-white/70 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all z-10"
+                      aria-label="Remove scene reference"
+                      className="absolute top-1 right-1 p-1.5 rounded-md bg-black/70 text-white/70 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all z-10"
                     ><X size={11} /></button>
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-cyan-900/70 to-transparent p-1 text-center">
                       <span className="text-[8px] text-cyan-200/70">Active</span>
@@ -971,8 +977,8 @@ export default function App() {
                 className="w-full h-16 bg-black/40 border border-white/10 rounded-xl p-3 pr-28 text-xs focus:outline-none focus:border-blue-500/40 transition-colors placeholder:text-white/25 disabled:opacity-50 resize-none custom-scrollbar"
               />
               {editInstruction && !isBusy && (
-                <button type="button" onClick={() => setEditInstruction('')}
-                  className="absolute top-1.5 left-1.5 p-0.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
+                <button type="button" onClick={() => setEditInstruction('')} aria-label="Clear edit instruction"
+                  className="absolute top-1.5 left-1.5 p-1.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
                   <X size={9} />
                 </button>
               )}
@@ -1026,8 +1032,8 @@ export default function App() {
                       </button>
                       <button
                         onClick={() => handleDeletePreset(p.id)}
-                        className="absolute top-1 right-1 opacity-0 group-hover/preset:opacity-100 text-white/30 hover:text-red-400 transition-all p-0.5 rounded"
-                        title="Удалить пресет"
+                        className="absolute top-1 right-1 opacity-0 group-hover/preset:opacity-100 text-white/30 hover:text-red-400 transition-all p-1.5 rounded"
+                        aria-label={`Удалить пресет ${p.name}`}
                       >
                         <X size={8} />
                       </button>
@@ -1351,8 +1357,12 @@ export default function App() {
         <div
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setDnaLibraryOpen(false)}
+          onKeyDown={e => { if (e.key === 'Escape') setDnaLibraryOpen(false); }}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="DNA Library"
             className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden w-full max-w-sm shadow-2xl flex flex-col max-h-[80vh]"
             onClick={e => e.stopPropagation()}
           >
@@ -1365,7 +1375,7 @@ export default function App() {
                   <span className="text-[10px] text-white/30">{dnaLibrary.length}</span>
                 )}
               </div>
-              <button onClick={() => setDnaLibraryOpen(false)} className="p-1 rounded text-white/30 hover:text-white/60 transition-colors">
+              <button onClick={() => setDnaLibraryOpen(false)} aria-label="Close DNA Library" className="p-1.5 rounded text-white/30 hover:text-white/60 transition-colors">
                 <X size={14} />
               </button>
             </div>
@@ -1456,8 +1466,12 @@ export default function App() {
         <div
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setHistoryModal(null)}
+          onKeyDown={e => { if (e.key === 'Escape') setHistoryModal(null); }}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Generation history detail"
             className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden max-w-xs w-full shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
