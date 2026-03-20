@@ -92,8 +92,13 @@ export async function extractImageJson(contentElements: any[], modelName: string
   });
 
   return logger.watchdog('Gemini', 'extractImageJson', (async () => {
-    const result = await model.generateContent([prompt, ...contentElements]);
-    return result.response.text();
+    try {
+      const result = await model.generateContent([prompt, ...contentElements]);
+      return result.response.text();
+    } catch (err) {
+      log.error('extractImageJson failed', err);
+      throw err;
+    }
   })(), 30_000);
 }
 
@@ -129,8 +134,13 @@ ${currentJson}`;
   });
 
   return logger.watchdog('Gemini', 'editImageJson', (async () => {
-    const result = await model.generateContent([prompt, ...imageParts]);
-    return result.response.text();
+    try {
+      const result = await model.generateContent([prompt, ...imageParts]);
+      return result.response.text();
+    } catch (err) {
+      log.error('editImageJson failed', err);
+      throw err;
+    }
   })(), 25_000);
 }
 
@@ -204,8 +214,13 @@ Analyze the image now and return the Scene DNA JSON.`;
   });
 
   return logger.watchdog('Gemini', 'extractSceneJson', (async () => {
-    const result = await model.generateContent([scenePromptText, imagePart]);
-    return result.response.text();
+    try {
+      const result = await model.generateContent([scenePromptText, imagePart]);
+      return result.response.text();
+    } catch (err) {
+      log.error('extractSceneJson failed', err);
+      throw err;
+    }
   })(), 30_000);
 }
 
@@ -276,8 +291,13 @@ ${sceneSection}`;
   log.info(`buildImagePromptFromDna — model=${modelName}  sceneDna=${hasSceneDna ? 'yes' : 'no'}`);
   const model = genAI.getGenerativeModel({ model: modelName });
   return logger.watchdog('Gemini', 'buildImagePromptFromDna', (async () => {
-    const result = await model.generateContent(prompt);
-    return result.response.text().trim();
+    try {
+      const result = await model.generateContent(prompt);
+      return result.response.text().trim();
+    } catch (err) {
+      log.error('buildImagePromptFromDna failed', err);
+      throw err;
+    }
   })(), 20_000);
 }
 
@@ -319,7 +339,12 @@ STRICT RULES:
 
   const model = genAI.getGenerativeModel({ model: modelName });
   return logger.watchdog('Gemini', 'enhancePrompt', (async () => {
-    const result = await model.generateContent(`${systemPrompt}${dnaAnchor}\n\nOriginal prompt:\n${prompt}`);
-    return result.response.text().trim();
+    try {
+      const result = await model.generateContent(`${systemPrompt}${dnaAnchor}\n\nOriginal prompt:\n${prompt}`);
+      return result.response.text().trim();
+    } catch (err) {
+      log.error('enhancePrompt failed', err);
+      throw err;
+    }
   })(), 25_000);
 }
