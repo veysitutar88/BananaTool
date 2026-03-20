@@ -26,6 +26,19 @@ import { logger } from '../utils/logger';
 import { isGeminiImageModelId, getModelByModelId } from '../lib/ai/imageModels';
 import { IMAGE_SOCIAL_SAFETY_GEMINI, IMAGE_SOCIAL_SAFETY_IMAGEN } from '../lib/ai/imageSafety';
 
+/**
+ * Result from generateImage.
+ * `images`     — array of data URLs (one per requested sample).
+ * `signatures` — parallel array of thoughtSignature strings (null when the model
+ *                did not emit one). Pass a non-null signature back as
+ *                `previousTurn.thoughtSignature` on the next call to enable
+ *                multi-turn image-editing continuity.
+ */
+export interface GenerateImageResult {
+  images: string[];
+  signatures: (string | null)[];
+}
+
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const log = logger.scope('ImageGen');
@@ -128,7 +141,7 @@ async function generateWithGeminiImage(
   itemImages?: File[],
   dnaJson?: string,
   sceneDnaJson?: string,
-): Promise<string[]> {
+): Promise<GenerateImageResult> {
   // ── Reference quota validation ─────────────────────────────────────────────
   const modelMeta = getModelByModelId(modelName);
   const maxRefs = modelMeta?.maxRefs ?? 14;
@@ -190,6 +203,7 @@ async function generateWithGeminiImage(
     : textWithItems;
 
   const results: string[] = [];
+  const signatures: (string | null)[] = [];
   const count = Math.max(1, Math.min(4, sampleCount));
   // Holds the last API response for post-loop error reporting
   let lastData: any = null;
@@ -272,8 +286,11 @@ async function generateWithGeminiImage(
       // Must be passed back verbatim in subsequent edit requests to prevent amnesia.
       // Source: https://ai.google.dev/gemini-api/docs/thought-signatures
       const sigPart = parts.find((p: any) => p.thoughtSignature);
-      if (sigPart?.thoughtSignature) {
-        log.info(`[${modelName}] image ${i + 1}/${count} — OK  finishReason=${finishReason}  thoughtSignature=present`);
+      const sig: string | null = sigPart?.thoughtSignature ?? null;
+      signatures.push(sig);
+
+      if (sig) {
+        log.info(`[${modelName}] image ${i + 1}/${count} — OK  finishReason=${finishReason}  thoughtSignature=present(${sig.length}b)`);
       } else {
         log.info(`[${modelName}] image ${i + 1}/${count} — OK  finishReason=${finishReason}`);
       }
@@ -302,7 +319,7 @@ async function generateWithGeminiImage(
     );
   }
 
-  return results;
+  return { images: results, signatures };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -322,7 +339,7 @@ async function generateWithImagen(
   aspectRatio: string,
   sampleCount: number,
   negativePrompt?: string,
-): Promise<string[]> {
+): Promise<GenerateImageResult> {
   const count = Math.max(1, Math.min(4, sampleCount));
   const url = `${GEMINI_BASE}/${modelName}:predict?key=${API_KEY}`;
 
@@ -357,9 +374,11 @@ async function generateWithImagen(
     throw new Error('No images in Imagen API response.');
   }
 
-  return data.predictions.map(
+  const images = data.predictions.map(
     (p: { bytesBase64Encoded: string }) => `data:image/jpeg;base64,${p.bytesBase64Encoded}`
   );
+  // Imagen does not emit thought signatures
+  return { images, signatures: images.map(() => null) };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -403,7 +422,7 @@ export async function generateImage(
   itemImages?: File[],
   dnaJson?: string,
   sceneDnaJson?: string,
-): Promise<string[]> {
+): Promise<GenerateImageResult> {
   if (!API_KEY) throw new Error('VITE_GEMINI_API_KEY is not set.');
 
   log.info(
