@@ -64,8 +64,14 @@ export async function uploadImage(dataUrl: string, filename: string): Promise<st
   }
 
   // Convert data URL → Blob
-  const res = await fetch(dataUrl);
-  const blob = await res.blob();
+  let blob: Blob;
+  try {
+    const res = await fetch(dataUrl);
+    blob = await res.blob();
+  } catch (err) {
+    log.error('uploadImage — failed to convert data URL to Blob', err);
+    return null;
+  }
 
   const path = `${Date.now()}-${filename}`;
 
