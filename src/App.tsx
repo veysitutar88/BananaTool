@@ -503,7 +503,7 @@ export default function App() {
           image_url:    imageUrl ?? undefined,
         }))
         .then(() => loadCloudHistory())
-        .catch(() => { /* storage errors are non-fatal — UI already shows the image */ });
+        .catch((err) => { console.warn('[Storage] upload/save failed:', err); });
     } catch (err: unknown) {
       setGenerateError(err instanceof Error ? err.message : 'Generation failed. Check model access and quota.');
     } finally {
@@ -1518,7 +1518,7 @@ export default function App() {
                     const res = await fetch(historyModal.image_url);
                     const blob = await res.blob();
                     const file = new File([blob], `history-${historyModal.id.slice(0, 8)}.png`, { type: blob.type });
-                    const slotKeys = ['r1', 'r2', 'r3', 'r4'] as const;
+                    const slotKeys = REFERENCE_SLOTS.map(s => s.id);
                     const emptySlot = slotKeys.find(id => !references[id]);
                     if (emptySlot) {
                       const objectUrl = URL.createObjectURL(blob);
