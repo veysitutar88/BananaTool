@@ -335,8 +335,18 @@ export default function App() {
   };
 
   const removeFile = (id: string, type: 'ref' | 'item') => {
-    if (type === 'ref') setReferences(p => { const n = { ...p }; delete n[id]; return n; });
-    else setItems(p => { const n = { ...p }; delete n[id]; return n; });
+    if (type === 'ref') setReferences(p => {
+      const n = { ...p };
+      if (n[id]?.url?.startsWith('blob:')) URL.revokeObjectURL(n[id].url);
+      delete n[id];
+      return n;
+    });
+    else setItems(p => {
+      const n = { ...p };
+      if (n[id]?.url?.startsWith('blob:')) URL.revokeObjectURL(n[id].url);
+      delete n[id];
+      return n;
+    });
   };
 
   const handleSceneReferenceUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -530,7 +540,7 @@ export default function App() {
       a.href = objectUrl;
       a.download = `nano-${characterName || 'img'}-${Date.now()}_json.png`;
       a.click();
-      URL.revokeObjectURL(objectUrl);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
     } catch (err: unknown) {
       setGenerateError(`PNG metadata error: ${err instanceof Error ? err.message : 'unknown'}`);
     }
@@ -576,11 +586,12 @@ export default function App() {
 
   const saveDnaToFile = () => {
     const blob = new Blob([jsonDna], { type: 'application/json' });
+    const objectUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    a.href = objectUrl;
     a.download = `dna-${characterName || 'character'}-${Date.now()}.json`;
     a.click();
-    URL.revokeObjectURL(a.href);
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
   };
 
   const loadDnaFromFile = () => {
