@@ -64,8 +64,14 @@ export async function uploadImage(dataUrl: string, filename: string): Promise<st
   }
 
   // Convert data URL → Blob
-  const res = await fetch(dataUrl);
-  const blob = await res.blob();
+  let blob: Blob;
+  try {
+    const res = await fetch(dataUrl);
+    blob = await res.blob();
+  } catch (err) {
+    log.error('uploadImage — failed to convert data URL to Blob', err);
+    return null;
+  }
 
   const path = `${Date.now()}-${filename}`;
 
@@ -196,5 +202,95 @@ export async function deleteUserPreset(id: string): Promise<void> {
     log.error(`deleteUserPreset — ${error.message}`, error);
   } else {
     log.info(`deleteUserPreset — OK  id=${id}`);
+  }
+}
+
+// ─── Character DNA Library ────────────────────────────────────────────────────
+//
+// SQL to run once in Supabase SQL Editor:
+// ─────────────────────────────────────────────────────────────────────────────
+// create table if not exists character_profiles (
+//   id            uuid primary key default gen_random_uuid(),
+//   created_at    timestamptz default now(),
+//   name          text not null,
+//   dna_json      jsonb not null,
+//   thumbnail_url text
+// );
+// alter table character_profiles enable row level security;
+// create policy "allow anon insert" on character_profiles for insert with check (true);
+// create policy "allow anon select" on character_profiles for select using (true);
+// create policy "allow anon delete" on character_profiles for delete using (true);
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface CharacterProfile {
+  id: string;
+  created_at: string;
+  name: string;
+  dna_json: Record<string, unknown>;
+  thumbnail_url: string | null;
+}
+
+/**
+ * Fetch all saved character DNA profiles, newest first.
+ */
+export async function fetchCharacterProfiles(): Promise<CharacterProfile[]> {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('character_profiles')
+    .select('id, created_at, name, dna_json, thumbnail_url')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    log.error(`fetchCharacterProfiles — ${error.message}`, error);
+    return [];
+  }
+  return (data ?? []) as CharacterProfile[];
+}
+
+/**
+ * Save a named character DNA profile. Optionally attach a thumbnail URL.
+ * Returns the created record, or null on failure.
+ */
+export async function saveCharacterProfile(
+  name: string,
+  dnaJson: Record<string, unknown>,
+  thumbnailUrl?: string,
+): Promise<CharacterProfile | null> {
+  if (!supabase) {
+    log.warn('saveCharacterProfile — Supabase not configured, skipping');
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from('character_profiles')
+    .insert({ name, dna_json: dnaJson, thumbnail_url: thumbnailUrl ?? null })
+    .select()
+    .single();
+
+  if (error) {
+    log.error(`saveCharacterProfile — ${error.message}`, error);
+    return null;
+  }
+
+  log.info(`saveCharacterProfile — OK  name=${name}`);
+  return data as CharacterProfile;
+}
+
+/**
+ * Delete a character DNA profile by id.
+ */
+export async function deleteCharacterProfile(id: string): Promise<void> {
+  if (!supabase) return;
+
+  const { error } = await supabase
+    .from('character_profiles')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    log.error(`deleteCharacterProfile — ${error.message}`, error);
+  } else {
+    log.info(`deleteCharacterProfile — OK  id=${id}`);
   }
 }

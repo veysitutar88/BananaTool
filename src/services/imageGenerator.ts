@@ -26,6 +26,38 @@ import { logger } from '../utils/logger';
 import { isGeminiImageModelId, getModelByModelId } from '../lib/ai/imageModels';
 import { IMAGE_SOCIAL_SAFETY_GEMINI, IMAGE_SOCIAL_SAFETY_IMAGEN } from '../lib/ai/imageSafety';
 
+// ─── Gemini REST response shapes ─────────────────────────────────────────────
+
+interface GeminiResponsePart {
+  inlineData?: { data?: string; mimeType?: string };
+  thoughtSignature?: string;
+  text?: string;
+}
+
+interface GeminiCandidate {
+  finishReason?: string;
+  content?: { parts?: GeminiResponsePart[] };
+  safetyRatings?: Array<{ category?: string; probability?: string }>;
+}
+
+interface GeminiImageResponse {
+  candidates?: GeminiCandidate[];
+  promptFeedback?: { blockReason?: string };
+}
+
+/**
+ * Result from generateImage.
+ * `images`     — array of data URLs (one per requested sample).
+ * `signatures` — parallel array of thoughtSignature strings (null when the model
+ *                did not emit one). Pass a non-null signature back as
+ *                `previousTurn.thoughtSignature` on the next call to enable
+ *                multi-turn image-editing continuity.
+ */
+export interface GenerateImageResult {
+  images: string[];
+  signatures: (string | null)[];
+}
+
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const log = logger.scope('ImageGen');
@@ -39,7 +71,14 @@ const FALLBACK_PROMPT =
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+    reader.onloadend = () => {
+      const parts = (reader.result as string).split(',');
+      if (parts.length < 2 || !parts[1]) {
+        reject(new Error('FileReader returned an unexpected data URL format.'));
+        return;
+      }
+      resolve(parts[1]);
+    };
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -128,7 +167,7 @@ async function generateWithGeminiImage(
   itemImages?: File[],
   dnaJson?: string,
   sceneDnaJson?: string,
-): Promise<string[]> {
+): Promise<GenerateImageResult> {
   // ── Reference quota validation ─────────────────────────────────────────────
   const modelMeta = getModelByModelId(modelName);
   const maxRefs = modelMeta?.maxRefs ?? 14;
@@ -190,9 +229,10 @@ async function generateWithGeminiImage(
     : textWithItems;
 
   const results: string[] = [];
+  const signatures: (string | null)[] = [];
   const count = Math.max(1, Math.min(4, sampleCount));
   // Holds the last API response for post-loop error reporting
-  let lastData: any = null;
+  let lastData: GeminiImageResponse | null = null;
 
   for (let i = 0; i < count; i++) {
     const body = {
@@ -236,14 +276,20 @@ async function generateWithGeminiImage(
       },
     };
 
-    const res = await fetch(
-      `${GEMINI_BASE}/${modelName}:generateContent?key=${API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      }
-    );
+    let res: Response;
+    try {
+      res = await fetch(
+        `${GEMINI_BASE}/${modelName}:generateContent?key=${API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }
+      );
+    } catch (err) {
+      log.error(`[${modelName}] network error on image ${i + 1}/${count}`, err);
+      throw err;
+    }
 
     if (!res.ok) {
       const errBody = await res.json().catch(() => null);
@@ -260,20 +306,25 @@ async function generateWithGeminiImage(
     const data = lastData;
     const candidate = data?.candidates?.[0];
     const finishReason: string = candidate?.finishReason ?? 'UNKNOWN';
-    const parts: any[] = candidate?.content?.parts ?? [];
-    const imgPart = parts.find((p: any) => p.inlineData?.data);
+    const parts: GeminiResponsePart[] = candidate?.content?.parts ?? [];
+    const imgPart = parts.find((p) => p.inlineData?.data);
 
     if (imgPart) {
-      const mime = imgPart.inlineData.mimeType || 'image/png';
-      results.push(`data:${mime};base64,${imgPart.inlineData.data}`);
+      // inlineData is guaranteed by the find() predicate above
+      const inlineData = imgPart.inlineData!;
+      const mime = inlineData.mimeType || 'image/png';
+      results.push(`data:${mime};base64,${inlineData.data}`);
 
       // Extract thoughtSignature — required for multi-turn image editing sessions.
       // The signature encodes the model's internal reasoning state for this image.
       // Must be passed back verbatim in subsequent edit requests to prevent amnesia.
       // Source: https://ai.google.dev/gemini-api/docs/thought-signatures
-      const sigPart = parts.find((p: any) => p.thoughtSignature);
-      if (sigPart?.thoughtSignature) {
-        log.info(`[${modelName}] image ${i + 1}/${count} — OK  finishReason=${finishReason}  thoughtSignature=present`);
+      const sigPart = parts.find((p) => p.thoughtSignature);
+      const sig: string | null = sigPart?.thoughtSignature ?? null;
+      signatures.push(sig);
+
+      if (sig) {
+        log.info(`[${modelName}] image ${i + 1}/${count} — OK  finishReason=${finishReason}  thoughtSignature=present(${sig.length}b)`);
       } else {
         log.info(`[${modelName}] image ${i + 1}/${count} — OK  finishReason=${finishReason}`);
       }
@@ -281,7 +332,7 @@ async function generateWithGeminiImage(
       // Log the full safety picture so we can diagnose filter hits
       const ratings = candidate?.safetyRatings ?? [];
       const ratingSummary = ratings
-        .map((r: any) => `${r.category?.replace('HARM_CATEGORY_', '')}=${r.probability}`)
+        .map((r) => `${r.category?.replace('HARM_CATEGORY_', '')}=${r.probability}`)
         .join(' ');
       log.warn(
         `[${modelName}] image ${i + 1}/${count} — NO IMAGE  finishReason=${finishReason}` +
@@ -302,7 +353,7 @@ async function generateWithGeminiImage(
     );
   }
 
-  return results;
+  return { images: results, signatures };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -322,11 +373,11 @@ async function generateWithImagen(
   aspectRatio: string,
   sampleCount: number,
   negativePrompt?: string,
-): Promise<string[]> {
+): Promise<GenerateImageResult> {
   const count = Math.max(1, Math.min(4, sampleCount));
   const url = `${GEMINI_BASE}/${modelName}:predict?key=${API_KEY}`;
 
-  const body: Record<string, any> = {
+  const body: Record<string, unknown> = {
     instances: [{ prompt }],
     parameters: {
       sampleCount: count,
@@ -339,11 +390,17 @@ async function generateWithImagen(
     },
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    log.error(`[${modelName}] network error`, err);
+    throw err;
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
@@ -357,9 +414,11 @@ async function generateWithImagen(
     throw new Error('No images in Imagen API response.');
   }
 
-  return data.predictions.map(
+  const images = data.predictions.map(
     (p: { bytesBase64Encoded: string }) => `data:image/jpeg;base64,${p.bytesBase64Encoded}`
   );
+  // Imagen does not emit thought signatures
+  return { images, signatures: images.map(() => null) };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -403,7 +462,7 @@ export async function generateImage(
   itemImages?: File[],
   dnaJson?: string,
   sceneDnaJson?: string,
-): Promise<string[]> {
+): Promise<GenerateImageResult> {
   if (!API_KEY) throw new Error('VITE_GEMINI_API_KEY is not set.');
 
   log.info(

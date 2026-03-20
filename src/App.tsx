@@ -8,8 +8,9 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { extractImageJson, extractSceneJson, fileToGenerativePart, editImageJson, buildImagePromptFromDna, enhancePrompt } from './services/gemini';
 import { generateImage } from './services/imageGenerator';
-import { uploadImage, saveGeneration, fetchGenerations, fetchUserPresets, saveUserPreset, deleteUserPreset } from './services/storage';
-import type { StoredGeneration, UserPreset } from './services/storage';
+import { uploadImage, saveGeneration, fetchGenerations, fetchUserPresets, saveUserPreset, deleteUserPreset, fetchCharacterProfiles, saveCharacterProfile, deleteCharacterProfile } from './services/storage';
+import type { StoredGeneration, UserPreset, CharacterProfile } from './services/storage';
+import type { GenerateImageResult } from './services/imageGenerator';
 import { readPngMetadata, injectPngITXt } from './lib/refgen/pngMetadata';
 import { downloadFromUrl } from './utils/downloadImage';
 import { GEMINI_IMAGE_MODELS, IMAGEN_MODELS, getModelLabel, DEFAULT_IMAGE_MODEL } from './lib/ai/imageModels';
@@ -251,6 +252,15 @@ export default function App() {
   const [historyModal, setHistoryModal] = useState<StoredGeneration | null>(null);
   const [dnaFromMeta,  setDnaFromMeta]  = useState(false);
 
+  // ── State: thought signatures (parallel to generatedImages) ───────────────
+  const [imageSignatures, setImageSignatures] = useState<(string | null)[]>([]);
+
+  // ── State: DNA Library ─────────────────────────────────────────────────────
+  const [dnaLibrary,        setDnaLibrary]        = useState<CharacterProfile[]>([]);
+  const [dnaLibraryOpen,    setDnaLibraryOpen]    = useState(false);
+  const [dnaLibraryLoading, setDnaLibraryLoading] = useState(false);
+  const [dnaLibraryName,    setDnaLibraryName]    = useState('');
+
   // ── State: errors ──────────────────────────────────────────────────────────
   const [extractError,  setExtractError]  = useState<string | null>(null);
   const [editError,     setEditError]     = useState<string | null>(null);
@@ -267,12 +277,29 @@ export default function App() {
     setCloudHistoryLoading(false);
   }, []);
 
-  useEffect(() => { loadCloudHistory(); }, [loadCloudHistory]);
-
-  const loadUserPresets = useCallback(async () => {
-    setUserPresets(await fetchUserPresets());
+  useEffect(() => {
+    let cancelled = false;
+    setCloudHistoryLoading(true);
+    fetchGenerations(50).then(rows => {
+      if (!cancelled) { setCloudHistory(rows); setCloudHistoryLoading(false); }
+    });
+    return () => { cancelled = true; };
   }, []);
-  useEffect(() => { loadUserPresets(); }, [loadUserPresets]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchUserPresets().then(rows => { if (!cancelled) setUserPresets(rows); });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setDnaLibraryLoading(true);
+    fetchCharacterProfiles().then(rows => {
+      if (!cancelled) { setDnaLibrary(rows); setDnaLibraryLoading(false); }
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   // ── Refs ───────────────────────────────────────────────────────────────────
   const hiddenInputs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -308,8 +335,18 @@ export default function App() {
   };
 
   const removeFile = (id: string, type: 'ref' | 'item') => {
-    if (type === 'ref') setReferences(p => { const n = { ...p }; delete n[id]; return n; });
-    else setItems(p => { const n = { ...p }; delete n[id]; return n; });
+    if (type === 'ref') setReferences(p => {
+      const n = { ...p };
+      if (n[id]?.url?.startsWith('blob:')) URL.revokeObjectURL(n[id].url);
+      delete n[id];
+      return n;
+    });
+    else setItems(p => {
+      const n = { ...p };
+      if (n[id]?.url?.startsWith('blob:')) URL.revokeObjectURL(n[id].url);
+      delete n[id];
+      return n;
+    });
   };
 
   const handleSceneReferenceUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -345,7 +382,7 @@ export default function App() {
     setDnaFromMeta(false);
     setIsExtracting(true);
     try {
-      const parts: any[] = [];
+      const parts: Array<string | Awaited<ReturnType<typeof fileToGenerativePart>>> = [];
       for (const [slotId, data] of Object.entries(references)) {
         const slot = REFERENCE_SLOTS.find(s => s.id === slotId);
         parts.push(`Image Type: ${slot?.role ?? slot?.label}`);
@@ -353,8 +390,8 @@ export default function App() {
       }
       const raw = await extractImageJson(parts, textModel);
       safeParseJson(raw, setJsonDna);
-    } catch (err: any) {
-      setExtractError(err?.message ?? 'Failed to extract DNA. Check your API key.');
+    } catch (err: unknown) {
+      setExtractError(err instanceof Error ? err.message : 'Failed to extract DNA. Check your API key.');
     } finally {
       setIsExtracting(false);
     }
@@ -371,8 +408,8 @@ export default function App() {
       const raw = await extractSceneJson(part, textModel);
       safeParseJson(raw, setSceneDna);
       setBuiltPrompt(''); // scene changed — old built prompt is stale
-    } catch (err: any) {
-      setSceneExtractError(err?.message ?? 'Failed to extract Scene DNA. Check API key.');
+    } catch (err: unknown) {
+      setSceneExtractError(err instanceof Error ? err.message : 'Failed to extract Scene DNA. Check API key.');
     } finally {
       setIsExtractingScene(false);
     }
@@ -392,8 +429,8 @@ export default function App() {
       safeParseJson(raw, setJsonDna);
       setBuiltPrompt('');
       setEditInstruction(''); // only the one-shot instruction is cleared — scene stays!
-    } catch (err: any) {
-      setEditError(err?.message ?? 'Failed to edit JSON. Check your API key.');
+    } catch (err: unknown) {
+      setEditError(err instanceof Error ? err.message : 'Failed to edit JSON. Check your API key.');
     } finally {
       setIsEditing(false);
     }
@@ -413,8 +450,8 @@ export default function App() {
         sceneDna || undefined,
       );
       setBuiltPrompt(prompt);
-    } catch (err: any) {
-      setGenerateError(err?.message ?? 'Failed to build prompt. Check your API key.');
+    } catch (err: unknown) {
+      setGenerateError(err instanceof Error ? err.message : 'Failed to build prompt. Check your API key.');
     } finally {
       setIsBuildingPrompt(false);
     }
@@ -428,8 +465,8 @@ export default function App() {
     try {
       const enhanced = await enhancePrompt(builtPrompt, textModel, jsonDna);
       setBuiltPrompt(enhanced);
-    } catch (err: any) {
-      setGenerateError(err?.message ?? 'Failed to enhance prompt.');
+    } catch (err: unknown) {
+      setGenerateError(err instanceof Error ? err.message : 'Failed to enhance prompt.');
     } finally {
       setIsEnhancingPrompt(false);
     }
@@ -441,30 +478,34 @@ export default function App() {
     setGenerateError(null);
     setGeneratedImages([]);
     setSelectedImage(null);
+    setImageSignatures([]);
     setIsGenerating(true);
     try {
       const refFiles  = Object.values(references).map(r => r.file);
       const itemFiles = Object.values(items).map(i => i.file);
-      const urls = await generateImage(
+      const result: GenerateImageResult = await generateImage(
         builtPrompt, imageModel, upscale, aspectRatio, sampleCount, negativePrompt,
         refFiles, sceneReference?.file, itemFiles.length ? itemFiles : undefined,
         jsonDna, sceneDna || undefined,
       );
+      const { images: urls, signatures: sigs } = result;
       setGeneratedImages(urls);
       setSelectedImage(urls[0]);
+      setImageSignatures(sigs);
       // Persist to Supabase (fire-and-forget — does not block UI)
       const presetLabel = scenePrompt.slice(0, 60) || undefined;
-      uploadImage(urls[0], `${imageModel}-${Date.now()}.png`).then(imageUrl => {
-        saveGeneration({
+      uploadImage(urls[0], `${imageModel}-${Date.now()}.png`)
+        .then(imageUrl => saveGeneration({
           preset_name:  presetLabel,
           model:        imageModel,
           dna_json:     (() => { try { return JSON.parse(jsonDna); } catch { return jsonDna; } })(),
           built_prompt: builtPrompt,
           image_url:    imageUrl ?? undefined,
-        }).then(() => loadCloudHistory());
-      });
-    } catch (err: any) {
-      setGenerateError(err?.message ?? 'Generation failed. Check model access and quota.');
+        }))
+        .then(() => loadCloudHistory())
+        .catch(() => { /* storage errors are non-fatal — UI already shows the image */ });
+    } catch (err: unknown) {
+      setGenerateError(err instanceof Error ? err.message : 'Generation failed. Check model access and quota.');
     } finally {
       setIsGenerating(false);
     }
@@ -486,7 +527,9 @@ export default function App() {
     const dnaReady = jsonDna !== DNA_JSON_PLACEHOLDER && jsonDna.trim().startsWith('{');
     if (!selectedImage?.startsWith('data:image/png') || !dnaReady) return;
     try {
-      const base64 = selectedImage.split(',')[1];
+      const parts = selectedImage.split(',');
+      if (parts.length < 2 || !parts[1]) throw new Error('Selected image is not a valid data URL.');
+      const base64 = parts[1];
       const binary = atob(base64);
       const bytes = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
@@ -497,11 +540,36 @@ export default function App() {
       a.href = objectUrl;
       a.download = `nano-${characterName || 'img'}-${Date.now()}_json.png`;
       a.click();
-      URL.revokeObjectURL(objectUrl);
-    } catch (err: any) {
-      setGenerateError(`PNG metadata error: ${err?.message ?? 'unknown'}`);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
+    } catch (err: unknown) {
+      setGenerateError(`PNG metadata error: ${err instanceof Error ? err.message : 'unknown'}`);
     }
   }, [selectedImage, jsonDna, characterName]);
+
+  // ── DNA Library handlers ──────────────────────────────────────────────────
+  const handleSaveToDnaLibrary = useCallback(async () => {
+    const name = dnaLibraryName.trim();
+    if (!name) return;
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(jsonDna);
+    } catch {
+      return; // invalid JSON — no-op
+    }
+    if (!parsed || typeof parsed !== 'object') return;
+    // Attach current generated image as thumbnail if it's a remote URL (cloud-stored)
+    const thumbnailUrl = selectedImage?.startsWith('http') ? selectedImage : undefined;
+    const saved = await saveCharacterProfile(name, parsed, thumbnailUrl);
+    if (saved) {
+      setDnaLibrary(prev => [saved, ...prev]);
+      setDnaLibraryName('');
+    }
+  }, [dnaLibraryName, jsonDna, selectedImage]);
+
+  const handleDeleteFromDnaLibrary = useCallback(async (id: string) => {
+    await deleteCharacterProfile(id);
+    setDnaLibrary(prev => prev.filter(p => p.id !== id));
+  }, []);
 
   // ── Helpers: presets, copy, save, load ───────────────────────────────────
   const applyPreset = (p: typeof SCENE_PRESETS[0]) => {
@@ -518,11 +586,12 @@ export default function App() {
 
   const saveDnaToFile = () => {
     const blob = new Blob([jsonDna], { type: 'application/json' });
+    const objectUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    a.href = objectUrl;
     a.download = `dna-${characterName || 'character'}-${Date.now()}.json`;
     a.click();
-    URL.revokeObjectURL(a.href);
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
   };
 
   const loadDnaFromFile = () => {
@@ -648,8 +717,8 @@ export default function App() {
                       className="w-full px-2.5 py-2 pr-6 rounded-lg bg-black/40 border border-white/10 text-xs focus:outline-none focus:border-yellow-500/50 text-white placeholder:text-white/20"
                     />
                     {characterName && (
-                      <button type="button" onClick={() => setCharacterName('')}
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
+                      <button type="button" onClick={() => setCharacterName('')} aria-label="Clear name"
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
                         <X size={9} />
                       </button>
                     )}
@@ -682,8 +751,8 @@ export default function App() {
                     className="w-full px-2.5 py-2 rounded-lg bg-black/40 border border-white/10 text-[11px] focus:outline-none focus:border-red-500/30 text-white/60 placeholder:text-white/20 resize-none custom-scrollbar"
                   />
                   {negativePrompt && (
-                    <button type="button" onClick={() => setNegativePrompt('')}
-                      className="absolute top-1.5 right-1.5 p-0.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
+                    <button type="button" onClick={() => setNegativePrompt('')} aria-label="Clear negative prompt"
+                      className="absolute top-1.5 right-1.5 p-1.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
                       <X size={9} />
                     </button>
                   )}
@@ -700,6 +769,13 @@ export default function App() {
                 {dnaFromMeta && <span className="text-[8px] text-yellow-500/60 ml-1">▲ from PNG</span>}
               </span>
               <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setDnaLibraryOpen(true)}
+                  className="p-1.5 rounded-md hover:bg-yellow-500/10 text-white/40 hover:text-yellow-400 transition-colors"
+                  title="DNA Library — save / load named character profiles"
+                >
+                  <Dna size={13} />
+                </button>
                 <button onClick={loadDnaFromFile} className="p-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-colors" title="Load DNA from .json file"><FolderOpen size={13} /></button>
                 <button onClick={saveDnaToFile} className="p-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-colors" title="Save DNA to .json file"><Save size={13} /></button>
                 <button onClick={copyJson} className="p-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-colors" title="Copy JSON">
@@ -789,8 +865,8 @@ export default function App() {
                 className="w-full h-20 bg-black/40 border border-white/10 rounded-xl p-3 text-xs focus:outline-none focus:border-yellow-500/40 transition-colors placeholder:text-white/25 disabled:opacity-50 resize-none custom-scrollbar"
               />
               {scenePrompt && !isBusy && (
-                <button type="button" onClick={() => setScenePrompt('')}
-                  className="absolute top-1.5 right-1.5 p-0.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
+                <button type="button" onClick={() => setScenePrompt('')} aria-label="Clear scene prompt"
+                  className="absolute top-1.5 right-1.5 p-1.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
                   <X size={9} />
                 </button>
               )}
@@ -809,7 +885,11 @@ export default function App() {
             <div className="flex gap-3 items-start">
               {/* Scene slot — landscape 4:3 ratio, cyan border, drag-and-drop */}
               <div
+                role="button"
+                tabIndex={isBusy ? -1 : 0}
+                aria-label="Upload scene reference image"
                 onClick={() => !isBusy && triggerUpload('scene-reference')}
+                onKeyDown={e => { if (!isBusy && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); triggerUpload('scene-reference'); } }}
                 onDragOver={e => { e.preventDefault(); if (!isBusy) setSceneDragOver(true); }}
                 onDragLeave={() => setSceneDragOver(false)}
                 onDrop={handleSceneDrop}
@@ -825,12 +905,14 @@ export default function App() {
                     <button
                       onClick={e => { e.stopPropagation(); triggerUpload('scene-reference'); }}
                       disabled={isBusy}
-                      className="absolute top-1 left-1 p-1 rounded-md bg-black/70 text-white/70 opacity-0 group-hover:opacity-100 hover:text-cyan-400 transition-all z-10"
+                      aria-label="Replace scene reference"
+                      className="absolute top-1 left-1 p-1.5 rounded-md bg-black/70 text-white/70 opacity-0 group-hover:opacity-100 hover:text-cyan-400 transition-all z-10"
                     ><RotateCcw size={11} /></button>
                     <button
                       onClick={e => { e.stopPropagation(); setSceneReference(null); }}
                       disabled={isBusy}
-                      className="absolute top-1 right-1 p-1 rounded-md bg-black/70 text-white/70 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all z-10"
+                      aria-label="Remove scene reference"
+                      className="absolute top-1 right-1 p-1.5 rounded-md bg-black/70 text-white/70 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all z-10"
                     ><X size={11} /></button>
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-cyan-900/70 to-transparent p-1 text-center">
                       <span className="text-[8px] text-cyan-200/70">Active</span>
@@ -916,8 +998,8 @@ export default function App() {
                 className="w-full h-16 bg-black/40 border border-white/10 rounded-xl p-3 pr-28 text-xs focus:outline-none focus:border-blue-500/40 transition-colors placeholder:text-white/25 disabled:opacity-50 resize-none custom-scrollbar"
               />
               {editInstruction && !isBusy && (
-                <button type="button" onClick={() => setEditInstruction('')}
-                  className="absolute top-1.5 left-1.5 p-0.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
+                <button type="button" onClick={() => setEditInstruction('')} aria-label="Clear edit instruction"
+                  className="absolute top-1.5 left-1.5 p-1.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
                   <X size={9} />
                 </button>
               )}
@@ -971,8 +1053,8 @@ export default function App() {
                       </button>
                       <button
                         onClick={() => handleDeletePreset(p.id)}
-                        className="absolute top-1 right-1 opacity-0 group-hover/preset:opacity-100 text-white/30 hover:text-red-400 transition-all p-0.5 rounded"
-                        title="Удалить пресет"
+                        className="absolute top-1 right-1 opacity-0 group-hover/preset:opacity-100 text-white/30 hover:text-red-400 transition-all p-1.5 rounded"
+                        aria-label={`Удалить пресет ${p.name}`}
                       >
                         <X size={8} />
                       </button>
@@ -1189,6 +1271,16 @@ export default function App() {
               <span className="text-white/50 font-medium">{getModelLabel(imageModel)}</span>
               <span className="text-white/15">·</span>
               <span className="font-mono">{imageModel}</span>
+              {/* Thought signature indicator */}
+              {(() => {
+                const idx = generatedImages.indexOf(selectedImage);
+                const hasSig = idx >= 0 && imageSignatures[idx] != null;
+                return hasSig ? (
+                  <span className="ml-1 text-[8px] text-purple-400/60 border border-purple-500/20 px-1 rounded" title="Thought signature captured — multi-turn continuity available">
+                    ∿ sig
+                  </span>
+                ) : null;
+              })()}
             </div>
           )}
 
@@ -1281,13 +1373,126 @@ export default function App() {
         </motion.section>
       </main>
 
+      {/* ── DNA Library modal ─────────────────────────────────────────────── */}
+      {dnaLibraryOpen && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setDnaLibraryOpen(false)}
+          onKeyDown={e => { if (e.key === 'Escape') setDnaLibraryOpen(false); }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="DNA Library"
+            className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden w-full max-w-sm shadow-2xl flex flex-col max-h-[80vh]"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <Dna size={14} className="text-yellow-500/70" />
+                <span className="text-sm font-semibold text-white/80">DNA Library</span>
+                {dnaLibrary.length > 0 && (
+                  <span className="text-[10px] text-white/30">{dnaLibrary.length}</span>
+                )}
+              </div>
+              <button onClick={() => setDnaLibraryOpen(false)} aria-label="Close DNA Library" className="p-1.5 rounded text-white/30 hover:text-white/60 transition-colors">
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Save current DNA */}
+            <div className="px-4 py-3 border-b border-white/10 shrink-0">
+              <p className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Save Current DNA</p>
+              <div className="flex gap-2">
+                <input
+                  value={dnaLibraryName}
+                  onChange={e => setDnaLibraryName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleSaveToDnaLibrary(); }}
+                  placeholder="Character name…"
+                  className="flex-1 px-2.5 py-1.5 rounded-lg bg-black/40 border border-white/10 text-xs focus:outline-none focus:border-yellow-500/50 text-white placeholder:text-white/25"
+                />
+                <button
+                  onClick={handleSaveToDnaLibrary}
+                  disabled={!dnaLibraryName.trim() || !isDnaReady}
+                  className="px-3 py-1.5 rounded-lg bg-yellow-500/80 hover:bg-yellow-400 text-black text-xs font-semibold transition-all disabled:opacity-30"
+                  title={!isDnaReady ? 'Extract DNA first' : 'Save to library'}
+                >
+                  Save
+                </button>
+              </div>
+              {!isDnaReady && (
+                <p className="text-[9px] text-white/25 mt-1">Extract character DNA first (Step 1)</p>
+              )}
+            </div>
+
+            {/* Profile list */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              {dnaLibraryLoading && (
+                <p className="text-[10px] text-white/30 text-center py-6">Loading…</p>
+              )}
+              {!dnaLibraryLoading && dnaLibrary.length === 0 && (
+                <p className="text-[10px] text-white/25 text-center py-6">No saved profiles yet</p>
+              )}
+              {dnaLibrary.map(profile => {
+                const identity = (profile.dna_json?.identity as string | undefined)?.slice(0, 90) ?? '';
+                const date = new Date(profile.created_at).toLocaleDateString('en', { day: '2-digit', month: 'short' });
+                return (
+                  <div key={profile.id} className="flex items-start gap-3 px-4 py-3 border-b border-white/[0.06] hover:bg-white/[0.03] transition-colors group">
+                    {/* Thumbnail */}
+                    {profile.thumbnail_url ? (
+                      <img src={profile.thumbnail_url} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0 border border-white/10" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center shrink-0">
+                        <Dna size={16} className="text-yellow-500/40" />
+                      </div>
+                    )}
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-white/80 truncate">{profile.name}</p>
+                      {identity && (
+                        <p className="text-[10px] text-white/30 mt-0.5 line-clamp-2 leading-relaxed">{identity}</p>
+                      )}
+                      <p className="text-[9px] text-white/20 mt-1">{date}</p>
+                    </div>
+                    {/* Actions */}
+                    <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => {
+                          setJsonDna(JSON.stringify(profile.dna_json, null, 2));
+                          setBuiltPrompt('');
+                          setDnaLibraryOpen(false);
+                        }}
+                        className="px-2 py-1 rounded-md bg-yellow-500/10 border border-yellow-500/20 hover:bg-yellow-500/20 text-[10px] text-yellow-400 font-medium transition-all"
+                      >
+                        Load
+                      </button>
+                      <button
+                        onClick={() => handleDeleteFromDnaLibrary(profile.id)}
+                        className="px-2 py-1 rounded-md bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-[10px] text-red-400 transition-all"
+                      >
+                        Del
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* History detail modal */}
       {historyModal && (
         <div
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setHistoryModal(null)}
+          onKeyDown={e => { if (e.key === 'Escape') setHistoryModal(null); }}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Generation history detail"
             className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden max-w-xs w-full shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >

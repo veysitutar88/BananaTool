@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, SchemaType, type Schema } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType, type Schema, type Part } from '@google/generative-ai';
 import { logger } from '../utils/logger';
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
@@ -12,9 +12,13 @@ export async function fileToGenerativePart(file: File): Promise<{
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => {
-      const base64 = (reader.result as string).split(',')[1];
+      const parts = (reader.result as string).split(',');
+      if (parts.length < 2 || !parts[1]) {
+        reject(new Error('FileReader returned an unexpected data URL format.'));
+        return;
+      }
       // file.type can be empty for files dragged from the OS → fallback to jpeg
-      resolve({ inlineData: { data: base64, mimeType: file.type || 'image/jpeg' } });
+      resolve({ inlineData: { data: parts[1], mimeType: file.type || 'image/jpeg' } });
     };
     reader.onerror = reject;
     reader.readAsDataURL(file);
@@ -22,7 +26,7 @@ export async function fileToGenerativePart(file: File): Promise<{
 }
 
 // ─── Pipeline Step 1: Extract DNA ─────────────────────────────────────────────
-export async function extractImageJson(contentElements: any[], modelName: string): Promise<string> {
+export async function extractImageJson(contentElements: Array<string | Part>, modelName: string): Promise<string> {
   if (!API_KEY) throw new Error('VITE_GEMINI_API_KEY is not set.');
   log.info(`extractImageJson — model=${modelName}, inputs=${contentElements.length}`);
 
@@ -88,8 +92,13 @@ export async function extractImageJson(contentElements: any[], modelName: string
   });
 
   return logger.watchdog('Gemini', 'extractImageJson', (async () => {
-    const result = await model.generateContent([prompt, ...contentElements]);
-    return result.response.text();
+    try {
+      const result = await model.generateContent([prompt, ...contentElements]);
+      return result.response.text();
+    } catch (err) {
+      log.error('extractImageJson failed', err);
+      throw err;
+    }
   })(), 30_000);
 }
 
@@ -97,7 +106,7 @@ export async function extractImageJson(contentElements: any[], modelName: string
 export async function editImageJson(
   currentJson: string,
   editInstruction: string,
-  imageParts: any[] = [],
+  imageParts: Array<string | Part> = [],
   modelName: string
 ): Promise<string> {
   if (!API_KEY) throw new Error('VITE_GEMINI_API_KEY is not set.');
@@ -125,15 +134,20 @@ ${currentJson}`;
   });
 
   return logger.watchdog('Gemini', 'editImageJson', (async () => {
-    const result = await model.generateContent([prompt, ...imageParts]);
-    return result.response.text();
+    try {
+      const result = await model.generateContent([prompt, ...imageParts]);
+      return result.response.text();
+    } catch (err) {
+      log.error('editImageJson failed', err);
+      throw err;
+    }
   })(), 25_000);
 }
 
 // ─── Pipeline Step 2.3: Extract Scene DNA ─────────────────────────────────────
 // Extracts structured environment/scene data from a single reference image.
 // Parallel to extractImageJson (character), but for the scene/environment.
-export async function extractSceneJson(imagePart: any, modelName: string): Promise<string> {
+export async function extractSceneJson(imagePart: Part, modelName: string): Promise<string> {
   if (!API_KEY) throw new Error('VITE_GEMINI_API_KEY is not set.');
   log.info(`extractSceneJson — model=${modelName}`);
 
@@ -200,8 +214,13 @@ Analyze the image now and return the Scene DNA JSON.`;
   });
 
   return logger.watchdog('Gemini', 'extractSceneJson', (async () => {
-    const result = await model.generateContent([scenePromptText, imagePart]);
-    return result.response.text();
+    try {
+      const result = await model.generateContent([scenePromptText, imagePart]);
+      return result.response.text();
+    } catch (err) {
+      log.error('extractSceneJson failed', err);
+      throw err;
+    }
   })(), 30_000);
 }
 
@@ -272,8 +291,13 @@ ${sceneSection}`;
   log.info(`buildImagePromptFromDna — model=${modelName}  sceneDna=${hasSceneDna ? 'yes' : 'no'}`);
   const model = genAI.getGenerativeModel({ model: modelName });
   return logger.watchdog('Gemini', 'buildImagePromptFromDna', (async () => {
-    const result = await model.generateContent(prompt);
-    return result.response.text().trim();
+    try {
+      const result = await model.generateContent(prompt);
+      return result.response.text().trim();
+    } catch (err) {
+      log.error('buildImagePromptFromDna failed', err);
+      throw err;
+    }
   })(), 20_000);
 }
 
@@ -315,7 +339,12 @@ STRICT RULES:
 
   const model = genAI.getGenerativeModel({ model: modelName });
   return logger.watchdog('Gemini', 'enhancePrompt', (async () => {
-    const result = await model.generateContent(`${systemPrompt}${dnaAnchor}\n\nOriginal prompt:\n${prompt}`);
-    return result.response.text().trim();
+    try {
+      const result = await model.generateContent(`${systemPrompt}${dnaAnchor}\n\nOriginal prompt:\n${prompt}`);
+      return result.response.text().trim();
+    } catch (err) {
+      log.error('enhancePrompt failed', err);
+      throw err;
+    }
   })(), 25_000);
 }
