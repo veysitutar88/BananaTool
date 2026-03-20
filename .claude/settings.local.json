@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:ai.google.dev)",
+      "WebFetch(domain:github.com)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "WebSearch",
+      "Bash(ls -td \"C:\\\\Users\\\\Lenovo Kalibriert\\\\.gemini\\\\antigravity\\\\scratch\\\\nano-banana-studio\\\\thoughts\\\\shared\\\\handoffs\"\"*/ 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo \"no-handoffs \")",
+      "Bash(find 'C:\\\\Users\\\\Lenovo Kalibriert\\\\.gemini\\\\antigravity\\\\scratch\\\\nano-banana-studio/src' -type f -name *.ts -o -name *.tsx -o -name *.js -o -name *.jsx)",
+      "Bash(grep -r \"database\\\\|storage\\\\|db\\\\|prisma\\\\|supabase\\\\|firebase\\\\|mongodb\" 'C:\\\\Users\\\\Lenovo Kalibriert\\\\.gemini\\\\antigravity\\\\scratch\\\\nano-banana-studio/src' --include=*.ts --include=*.tsx --include=*.js --include=*.jsx)",
+      "Bash(npm install:*)",
+      "Bash(vercel --version)",
+      "Bash(vercel whoami:*)",
+      "Bash(vercel link:*)",
+      "Bash(vercel env:*)",
+      "Bash(vercel ls:*)",
+      "Bash(vercel --prod)"
+    ]
+  }
+}
