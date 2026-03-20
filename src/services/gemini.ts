@@ -12,9 +12,13 @@ export async function fileToGenerativePart(file: File): Promise<{
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => {
-      const base64 = (reader.result as string).split(',')[1];
+      const parts = (reader.result as string).split(',');
+      if (parts.length < 2 || !parts[1]) {
+        reject(new Error('FileReader returned an unexpected data URL format.'));
+        return;
+      }
       // file.type can be empty for files dragged from the OS → fallback to jpeg
-      resolve({ inlineData: { data: base64, mimeType: file.type || 'image/jpeg' } });
+      resolve({ inlineData: { data: parts[1], mimeType: file.type || 'image/jpeg' } });
     };
     reader.onerror = reject;
     reader.readAsDataURL(file);

@@ -506,7 +506,9 @@ export default function App() {
     const dnaReady = jsonDna !== DNA_JSON_PLACEHOLDER && jsonDna.trim().startsWith('{');
     if (!selectedImage?.startsWith('data:image/png') || !dnaReady) return;
     try {
-      const base64 = selectedImage.split(',')[1];
+      const parts = selectedImage.split(',');
+      if (parts.length < 2 || !parts[1]) throw new Error('Selected image is not a valid data URL.');
+      const base64 = parts[1];
       const binary = atob(base64);
       const bytes = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);

@@ -52,7 +52,14 @@ const FALLBACK_PROMPT =
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+    reader.onloadend = () => {
+      const parts = (reader.result as string).split(',');
+      if (parts.length < 2 || !parts[1]) {
+        reject(new Error('FileReader returned an unexpected data URL format.'));
+        return;
+      }
+      resolve(parts[1]);
+    };
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
