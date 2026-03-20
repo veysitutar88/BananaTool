@@ -277,19 +277,29 @@ export default function App() {
     setCloudHistoryLoading(false);
   }, []);
 
-  useEffect(() => { loadCloudHistory(); }, [loadCloudHistory]);
-
-  const loadUserPresets = useCallback(async () => {
-    setUserPresets(await fetchUserPresets());
+  useEffect(() => {
+    let cancelled = false;
+    setCloudHistoryLoading(true);
+    fetchGenerations(50).then(rows => {
+      if (!cancelled) { setCloudHistory(rows); setCloudHistoryLoading(false); }
+    });
+    return () => { cancelled = true; };
   }, []);
-  useEffect(() => { loadUserPresets(); }, [loadUserPresets]);
 
-  const loadDnaLibrary = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false;
+    fetchUserPresets().then(rows => { if (!cancelled) setUserPresets(rows); });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
     setDnaLibraryLoading(true);
-    setDnaLibrary(await fetchCharacterProfiles());
-    setDnaLibraryLoading(false);
+    fetchCharacterProfiles().then(rows => {
+      if (!cancelled) { setDnaLibrary(rows); setDnaLibraryLoading(false); }
+    });
+    return () => { cancelled = true; };
   }, []);
-  useEffect(() => { loadDnaLibrary(); }, [loadDnaLibrary]);
 
   // ── Refs ───────────────────────────────────────────────────────────────────
   const hiddenInputs = useRef<Record<string, HTMLInputElement | null>>({});
