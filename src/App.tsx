@@ -627,7 +627,7 @@ export default function App() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8 flex flex-col gap-5">
+    <div className="h-screen overflow-hidden p-4 md:p-6 lg:p-8 flex flex-col gap-5">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="glass-panel rounded-2xl p-4 flex items-center justify-between">
@@ -645,7 +645,7 @@ export default function App() {
 
 
       {/* ── Main 3-column Grid ─────────────────────────────────────────────── */}
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-5 auto-rows-fr">
+      <main className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-3 gap-5 auto-rows-fr min-h-0">
 
         {/* ══ Column 1: Reference Images + DNA ══════════════════════════════ */}
         <motion.section
@@ -1214,7 +1214,7 @@ export default function App() {
         {/* ══ Column 3: Result + History ════════════════════════════════════ */}
         <motion.section
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }}
-          className="glass-panel rounded-2xl p-5 flex flex-col gap-4"
+          className="glass-panel rounded-2xl p-5 flex flex-col gap-4 overflow-hidden min-h-0"
         >
           {/* Header */}
           <div className="flex items-center justify-between text-white/80">
