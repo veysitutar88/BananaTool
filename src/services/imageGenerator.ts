@@ -257,14 +257,20 @@ async function generateWithGeminiImage(
       },
     };
 
-    const res = await fetch(
-      `${GEMINI_BASE}/${modelName}:generateContent?key=${API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      }
-    );
+    let res: Response;
+    try {
+      res = await fetch(
+        `${GEMINI_BASE}/${modelName}:generateContent?key=${API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }
+      );
+    } catch (err) {
+      log.error(`[${modelName}] network error on image ${i + 1}/${count}`, err);
+      throw err;
+    }
 
     if (!res.ok) {
       const errBody = await res.json().catch(() => null);
@@ -363,11 +369,17 @@ async function generateWithImagen(
     },
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    log.error(`[${modelName}] network error`, err);
+    throw err;
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
