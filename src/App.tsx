@@ -362,7 +362,7 @@ export default function App() {
     setDnaFromMeta(false);
     setIsExtracting(true);
     try {
-      const parts: any[] = [];
+      const parts: Array<string | Awaited<ReturnType<typeof fileToGenerativePart>>> = [];
       for (const [slotId, data] of Object.entries(references)) {
         const slot = REFERENCE_SLOTS.find(s => s.id === slotId);
         parts.push(`Image Type: ${slot?.role ?? slot?.label}`);
@@ -370,8 +370,8 @@ export default function App() {
       }
       const raw = await extractImageJson(parts, textModel);
       safeParseJson(raw, setJsonDna);
-    } catch (err: any) {
-      setExtractError(err?.message ?? 'Failed to extract DNA. Check your API key.');
+    } catch (err: unknown) {
+      setExtractError(err instanceof Error ? err.message : 'Failed to extract DNA. Check your API key.');
     } finally {
       setIsExtracting(false);
     }
@@ -388,8 +388,8 @@ export default function App() {
       const raw = await extractSceneJson(part, textModel);
       safeParseJson(raw, setSceneDna);
       setBuiltPrompt(''); // scene changed — old built prompt is stale
-    } catch (err: any) {
-      setSceneExtractError(err?.message ?? 'Failed to extract Scene DNA. Check API key.');
+    } catch (err: unknown) {
+      setSceneExtractError(err instanceof Error ? err.message : 'Failed to extract Scene DNA. Check API key.');
     } finally {
       setIsExtractingScene(false);
     }
@@ -409,8 +409,8 @@ export default function App() {
       safeParseJson(raw, setJsonDna);
       setBuiltPrompt('');
       setEditInstruction(''); // only the one-shot instruction is cleared — scene stays!
-    } catch (err: any) {
-      setEditError(err?.message ?? 'Failed to edit JSON. Check your API key.');
+    } catch (err: unknown) {
+      setEditError(err instanceof Error ? err.message : 'Failed to edit JSON. Check your API key.');
     } finally {
       setIsEditing(false);
     }
@@ -430,8 +430,8 @@ export default function App() {
         sceneDna || undefined,
       );
       setBuiltPrompt(prompt);
-    } catch (err: any) {
-      setGenerateError(err?.message ?? 'Failed to build prompt. Check your API key.');
+    } catch (err: unknown) {
+      setGenerateError(err instanceof Error ? err.message : 'Failed to build prompt. Check your API key.');
     } finally {
       setIsBuildingPrompt(false);
     }
@@ -445,8 +445,8 @@ export default function App() {
     try {
       const enhanced = await enhancePrompt(builtPrompt, textModel, jsonDna);
       setBuiltPrompt(enhanced);
-    } catch (err: any) {
-      setGenerateError(err?.message ?? 'Failed to enhance prompt.');
+    } catch (err: unknown) {
+      setGenerateError(err instanceof Error ? err.message : 'Failed to enhance prompt.');
     } finally {
       setIsEnhancingPrompt(false);
     }
@@ -484,8 +484,8 @@ export default function App() {
         }))
         .then(() => loadCloudHistory())
         .catch(() => { /* storage errors are non-fatal — UI already shows the image */ });
-    } catch (err: any) {
-      setGenerateError(err?.message ?? 'Generation failed. Check model access and quota.');
+    } catch (err: unknown) {
+      setGenerateError(err instanceof Error ? err.message : 'Generation failed. Check model access and quota.');
     } finally {
       setIsGenerating(false);
     }
@@ -521,8 +521,8 @@ export default function App() {
       a.download = `nano-${characterName || 'img'}-${Date.now()}_json.png`;
       a.click();
       URL.revokeObjectURL(objectUrl);
-    } catch (err: any) {
-      setGenerateError(`PNG metadata error: ${err?.message ?? 'unknown'}`);
+    } catch (err: unknown) {
+      setGenerateError(`PNG metadata error: ${err instanceof Error ? err.message : 'unknown'}`);
     }
   }, [selectedImage, jsonDna, characterName]);
 

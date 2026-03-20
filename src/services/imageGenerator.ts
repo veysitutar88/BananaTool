@@ -26,6 +26,25 @@ import { logger } from '../utils/logger';
 import { isGeminiImageModelId, getModelByModelId } from '../lib/ai/imageModels';
 import { IMAGE_SOCIAL_SAFETY_GEMINI, IMAGE_SOCIAL_SAFETY_IMAGEN } from '../lib/ai/imageSafety';
 
+// ─── Gemini REST response shapes ─────────────────────────────────────────────
+
+interface GeminiResponsePart {
+  inlineData?: { data?: string; mimeType?: string };
+  thoughtSignature?: string;
+  text?: string;
+}
+
+interface GeminiCandidate {
+  finishReason?: string;
+  content?: { parts?: GeminiResponsePart[] };
+  safetyRatings?: Array<{ category?: string; probability?: string }>;
+}
+
+interface GeminiImageResponse {
+  candidates?: GeminiCandidate[];
+  promptFeedback?: { blockReason?: string };
+}
+
 /**
  * Result from generateImage.
  * `images`     — array of data URLs (one per requested sample).
@@ -213,7 +232,7 @@ async function generateWithGeminiImage(
   const signatures: (string | null)[] = [];
   const count = Math.max(1, Math.min(4, sampleCount));
   // Holds the last API response for post-loop error reporting
-  let lastData: any = null;
+  let lastData: GeminiImageResponse | null = null;
 
   for (let i = 0; i < count; i++) {
     const body = {
@@ -287,18 +306,20 @@ async function generateWithGeminiImage(
     const data = lastData;
     const candidate = data?.candidates?.[0];
     const finishReason: string = candidate?.finishReason ?? 'UNKNOWN';
-    const parts: any[] = candidate?.content?.parts ?? [];
-    const imgPart = parts.find((p: any) => p.inlineData?.data);
+    const parts: GeminiResponsePart[] = candidate?.content?.parts ?? [];
+    const imgPart = parts.find((p) => p.inlineData?.data);
 
     if (imgPart) {
-      const mime = imgPart.inlineData.mimeType || 'image/png';
-      results.push(`data:${mime};base64,${imgPart.inlineData.data}`);
+      // inlineData is guaranteed by the find() predicate above
+      const inlineData = imgPart.inlineData!;
+      const mime = inlineData.mimeType || 'image/png';
+      results.push(`data:${mime};base64,${inlineData.data}`);
 
       // Extract thoughtSignature — required for multi-turn image editing sessions.
       // The signature encodes the model's internal reasoning state for this image.
       // Must be passed back verbatim in subsequent edit requests to prevent amnesia.
       // Source: https://ai.google.dev/gemini-api/docs/thought-signatures
-      const sigPart = parts.find((p: any) => p.thoughtSignature);
+      const sigPart = parts.find((p) => p.thoughtSignature);
       const sig: string | null = sigPart?.thoughtSignature ?? null;
       signatures.push(sig);
 
@@ -311,7 +332,7 @@ async function generateWithGeminiImage(
       // Log the full safety picture so we can diagnose filter hits
       const ratings = candidate?.safetyRatings ?? [];
       const ratingSummary = ratings
-        .map((r: any) => `${r.category?.replace('HARM_CATEGORY_', '')}=${r.probability}`)
+        .map((r) => `${r.category?.replace('HARM_CATEGORY_', '')}=${r.probability}`)
         .join(' ');
       log.warn(
         `[${modelName}] image ${i + 1}/${count} — NO IMAGE  finishReason=${finishReason}` +
@@ -356,7 +377,7 @@ async function generateWithImagen(
   const count = Math.max(1, Math.min(4, sampleCount));
   const url = `${GEMINI_BASE}/${modelName}:predict?key=${API_KEY}`;
 
-  const body: Record<string, any> = {
+  const body: Record<string, unknown> = {
     instances: [{ prompt }],
     parameters: {
       sampleCount: count,

@@ -5,7 +5,7 @@ import App from './App.tsx'
 import { logger } from './utils/logger'
 
 if (import.meta.env.DEV) {
-  (window as any).__log = logger
+  (window as unknown as { __log: typeof logger }).__log = logger
 }
 
 createRoot(document.getElementById('root')!).render(

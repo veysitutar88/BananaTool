@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, SchemaType, type Schema } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType, type Schema, type Part } from '@google/generative-ai';
 import { logger } from '../utils/logger';
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
@@ -26,7 +26,7 @@ export async function fileToGenerativePart(file: File): Promise<{
 }
 
 // ─── Pipeline Step 1: Extract DNA ─────────────────────────────────────────────
-export async function extractImageJson(contentElements: any[], modelName: string): Promise<string> {
+export async function extractImageJson(contentElements: Array<string | Part>, modelName: string): Promise<string> {
   if (!API_KEY) throw new Error('VITE_GEMINI_API_KEY is not set.');
   log.info(`extractImageJson — model=${modelName}, inputs=${contentElements.length}`);
 
@@ -106,7 +106,7 @@ export async function extractImageJson(contentElements: any[], modelName: string
 export async function editImageJson(
   currentJson: string,
   editInstruction: string,
-  imageParts: any[] = [],
+  imageParts: Array<string | Part> = [],
   modelName: string
 ): Promise<string> {
   if (!API_KEY) throw new Error('VITE_GEMINI_API_KEY is not set.');
@@ -147,7 +147,7 @@ ${currentJson}`;
 // ─── Pipeline Step 2.3: Extract Scene DNA ─────────────────────────────────────
 // Extracts structured environment/scene data from a single reference image.
 // Parallel to extractImageJson (character), but for the scene/environment.
-export async function extractSceneJson(imagePart: any, modelName: string): Promise<string> {
+export async function extractSceneJson(imagePart: Part, modelName: string): Promise<string> {
   if (!API_KEY) throw new Error('VITE_GEMINI_API_KEY is not set.');
   log.info(`extractSceneJson — model=${modelName}`);
 
