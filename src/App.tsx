@@ -474,15 +474,16 @@ export default function App() {
       setImageSignatures(sigs);
       // Persist to Supabase (fire-and-forget — does not block UI)
       const presetLabel = scenePrompt.slice(0, 60) || undefined;
-      uploadImage(urls[0], `${imageModel}-${Date.now()}.png`).then(imageUrl => {
-        saveGeneration({
+      uploadImage(urls[0], `${imageModel}-${Date.now()}.png`)
+        .then(imageUrl => saveGeneration({
           preset_name:  presetLabel,
           model:        imageModel,
           dna_json:     (() => { try { return JSON.parse(jsonDna); } catch { return jsonDna; } })(),
           built_prompt: builtPrompt,
           image_url:    imageUrl ?? undefined,
-        }).then(() => loadCloudHistory());
-      });
+        }))
+        .then(() => loadCloudHistory())
+        .catch(() => { /* storage errors are non-fatal — UI already shows the image */ });
     } catch (err: any) {
       setGenerateError(err?.message ?? 'Generation failed. Check model access and quota.');
     } finally {
