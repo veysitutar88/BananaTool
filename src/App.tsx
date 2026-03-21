@@ -194,8 +194,8 @@ function ImageSlot({
           onClick={() => !disabled && onUpload(id, type)}
           className={`w-full h-full flex flex-col items-center justify-center ${disabled ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-white/5'} transition-colors p-2 text-center`}
         >
-          <UploadIcon size={iconSize} className="text-white/25 mb-1" />
-          <span className={`text-white/40 ${size === 'sm' ? 'text-[9px]' : 'text-xs'}`}>{label}</span>
+          <UploadIcon size={iconSize} className="text-white/50 mb-1" />
+          <span className={`text-white/65 ${size === 'sm' ? 'text-[9px]' : 'text-xs'}`}>{label}</span>
         </div>
       )}
     </div>
@@ -627,7 +627,7 @@ export default function App() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="h-screen overflow-hidden p-4 md:p-6 lg:p-8 flex flex-col gap-5">
+    <div className="min-h-screen lg:h-screen lg:overflow-hidden p-4 md:p-6 lg:p-8 flex flex-col gap-5">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="glass-panel rounded-2xl p-4 flex items-center justify-between">
@@ -637,7 +637,7 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-white tracking-tight">Nano Banana Studio</h1>
-            <p className="text-[11px] text-white/40">DNA Pipeline · {textModel}</p>
+            <p className="text-[11px] text-white/65">DNA Pipeline · {textModel}</p>
           </div>
         </div>
       </header>
@@ -645,12 +645,12 @@ export default function App() {
 
 
       {/* ── Main 3-column Grid ─────────────────────────────────────────────── */}
-      <main className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-3 gap-5 auto-rows-fr min-h-0">
+      <main className="flex-1 lg:overflow-hidden grid grid-cols-1 lg:grid-cols-3 gap-5 lg:auto-rows-fr lg:min-h-0">
 
         {/* ══ Column 1: Reference Images + DNA ══════════════════════════════ */}
         <motion.section
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
-          className="glass-panel rounded-2xl flex flex-col overflow-hidden"
+          className="glass-panel rounded-2xl flex flex-col overflow-y-auto"
         >
           {/* Hidden file inputs for all ref slots */}
           {REFERENCE_SLOTS.map(s => (
@@ -708,24 +708,24 @@ export default function App() {
             <div className="flex flex-col gap-3">
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-white/40 uppercase tracking-widest flex items-center gap-1.5"><User size={10} /> Name</label>
+                  <label className="text-[10px] text-white/65 uppercase tracking-widest flex items-center gap-1.5"><User size={10} /> Name</label>
                   <div className="relative">
                     <input
                       value={characterName}
                       onChange={e => setCharacterName(e.target.value)}
                       placeholder="Mia..."
-                      className="w-full px-2.5 py-2 pr-6 rounded-lg bg-black/40 border border-white/10 text-xs focus:outline-none focus:border-yellow-500/50 text-white placeholder:text-white/20"
+                      className="w-full px-2.5 py-2 pr-6 rounded-lg bg-black/40 border border-white/10 text-xs focus:outline-none focus:border-yellow-500/50 text-white placeholder:text-white/30"
                     />
                     {characterName && (
                       <button type="button" onClick={() => setCharacterName('')} aria-label="Clear name"
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded text-white/50 hover:text-white/60 hover:bg-white/10 transition-all z-10">
                         <X size={9} />
                       </button>
                     )}
                   </div>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-white/40 uppercase tracking-widest flex items-center gap-1.5"><Sparkles size={10} /> model</label>
+                  <label className="text-[10px] text-white/65 uppercase tracking-widest flex items-center gap-1.5"><Sparkles size={10} /> model</label>
                   <div className="relative">
                     <select
                       value={textModel}
@@ -736,23 +736,23 @@ export default function App() {
                         <option key={o.value} value={o.value} className="bg-[#0f0f11]">{o.label}</option>
                       ))}
                     </select>
-                    <ChevronDown size={10} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                    <ChevronDown size={10} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/55 pointer-events-none" />
                   </div>
                 </div>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-white/40 uppercase tracking-widest flex items-center gap-1.5"><MinusCircle size={10} /> Negative Prompt</label>
+                <label className="text-[10px] text-white/65 uppercase tracking-widest flex items-center gap-1.5"><MinusCircle size={10} /> Negative Prompt</label>
                 <div className="relative">
                   <textarea
                     value={negativePrompt}
                     onChange={e => setNegativePrompt(e.target.value)}
                     placeholder="blur, noise, watermark..."
                     rows={2}
-                    className="w-full px-2.5 py-2 rounded-lg bg-black/40 border border-white/10 text-[11px] focus:outline-none focus:border-red-500/30 text-white/60 placeholder:text-white/20 resize-none custom-scrollbar"
+                    className="w-full px-2.5 py-2 rounded-lg bg-black/40 border border-white/10 text-[11px] focus:outline-none focus:border-red-500/30 text-white/60 placeholder:text-white/30 resize-none custom-scrollbar"
                   />
                   {negativePrompt && (
                     <button type="button" onClick={() => setNegativePrompt('')} aria-label="Clear negative prompt"
-                      className="absolute top-1.5 right-1.5 p-1.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
+                      className="absolute top-1.5 right-1.5 p-1.5 rounded text-white/50 hover:text-white/60 hover:bg-white/10 transition-all z-10">
                       <X size={9} />
                     </button>
                   )}
@@ -771,14 +771,14 @@ export default function App() {
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setDnaLibraryOpen(true)}
-                  className="p-1.5 rounded-md hover:bg-yellow-500/10 text-white/40 hover:text-yellow-400 transition-colors"
+                  className="p-1.5 rounded-md hover:bg-yellow-500/10 text-white/65 hover:text-yellow-400 transition-colors"
                   title="DNA Library — save / load named character profiles"
                 >
                   <Dna size={13} />
                 </button>
-                <button onClick={loadDnaFromFile} className="p-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-colors" title="Load DNA from .json file"><FolderOpen size={13} /></button>
-                <button onClick={saveDnaToFile} className="p-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-colors" title="Save DNA to .json file"><Save size={13} /></button>
-                <button onClick={copyJson} className="p-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-colors" title="Copy JSON">
+                <button onClick={loadDnaFromFile} className="p-1.5 rounded-md hover:bg-white/10 text-white/65 hover:text-white transition-colors" title="Load DNA from .json file"><FolderOpen size={13} /></button>
+                <button onClick={saveDnaToFile} className="p-1.5 rounded-md hover:bg-white/10 text-white/65 hover:text-white transition-colors" title="Save DNA to .json file"><Save size={13} /></button>
+                <button onClick={copyJson} className="p-1.5 rounded-md hover:bg-white/10 text-white/65 hover:text-white transition-colors" title="Copy JSON">
                   {copied ? <Check size={13} className="text-green-400" /> : <Copy size={13} />}
                 </button>
               </div>
@@ -805,7 +805,7 @@ export default function App() {
         {/* ══ Column 2: Items, Scene, Presets, Controls ═════════════════════ */}
         <motion.section
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}
-          className="glass-panel rounded-2xl p-5 flex flex-col gap-4"
+          className="glass-panel rounded-2xl p-5 flex flex-col gap-4 overflow-y-auto"
         >
           {/* Hidden file inputs for item slots */}
           {ITEM_SLOTS.map(s => (
@@ -828,8 +828,8 @@ export default function App() {
           {/* Item Slots */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[10px] text-white/40 uppercase tracking-widest">Style / Item References</h3>
-              <span className="text-[9px] text-white/25">Used with Edit DNA instruction ↓</span>
+              <h3 className="text-[10px] text-white/65 uppercase tracking-widest">Style / Item References</h3>
+              <span className="text-[9px] text-white/50">Used with Edit DNA instruction ↓</span>
             </div>
             <div className="grid grid-cols-5 gap-2">
               {ITEM_SLOTS.map(slot => (
@@ -850,11 +850,11 @@ export default function App() {
           {/* Scene Instructions (permanent — B1 FIX) */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-[10px] text-white/40 uppercase tracking-widest flex items-center gap-1.5">
+              <h3 className="text-[10px] text-white/65 uppercase tracking-widest flex items-center gap-1.5">
                 Emotional Fragment
                 {sceneDna && <span className="text-[8px] text-cyan-500/50 normal-case tracking-normal font-normal">+ Scene DNA active</span>}
               </h3>
-              <span className="text-[9px] text-white/25">Mood · 3–20 words</span>
+              <span className="text-[9px] text-white/50">Mood · 3–20 words</span>
             </div>
             <div className="relative">
               <textarea
@@ -862,11 +862,11 @@ export default function App() {
                 onChange={e => setScenePrompt(e.target.value)}
                 disabled={isBusy}
                 placeholder={sceneDna ? "Emotional mood: «угрюмая дождливая ночь», «тёплый летний полдень»…" : "Scene: clothing, location, lighting, camera, mood…"}
-                className="w-full h-20 bg-black/40 border border-white/10 rounded-xl p-3 text-xs focus:outline-none focus:border-yellow-500/40 transition-colors placeholder:text-white/25 disabled:opacity-50 resize-none custom-scrollbar"
+                className="w-full h-20 bg-black/40 border border-white/10 rounded-xl p-3 text-xs focus:outline-none focus:border-yellow-500/40 transition-colors placeholder:text-white/35 disabled:opacity-50 resize-none custom-scrollbar"
               />
               {scenePrompt && !isBusy && (
                 <button type="button" onClick={() => setScenePrompt('')} aria-label="Clear scene prompt"
-                  className="absolute top-1.5 right-1.5 p-1.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
+                  className="absolute top-1.5 right-1.5 p-1.5 rounded text-white/50 hover:text-white/60 hover:bg-white/10 transition-all z-10">
                   <X size={9} />
                 </button>
               )}
@@ -876,11 +876,11 @@ export default function App() {
           {/* ── Scene Carrier ─────────────────────────────────────────────── */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-[10px] text-white/40 uppercase tracking-widest flex items-center gap-1.5">
+              <h3 className="text-[10px] text-white/65 uppercase tracking-widest flex items-center gap-1.5">
                 <ImageIcon size={10} className="text-cyan-400/60" />
                 Scene Carrier
               </h3>
-              <span className="text-[9px] text-white/25">Background · Environment · Nano Banana only</span>
+              <span className="text-[9px] text-white/50">Background · Environment · Nano Banana only</span>
             </div>
             <div className="flex gap-3 items-start">
               {/* Scene slot — landscape 4:3 ratio, cyan border, drag-and-drop */}
@@ -926,7 +926,7 @@ export default function App() {
                 )}
               </div>
               {/* Explanation + Extract button */}
-              <div className="flex-1 text-[10px] text-white/30 leading-relaxed pt-0.5">
+              <div className="flex-1 text-[10px] text-white/55 leading-relaxed pt-0.5">
                 <p>Drop a <span className="text-white/50">background or scene photo</span>. Персонаж из блока 1 будет имплантирован.</p>
                 <button
                   onClick={extractSceneDna}
@@ -957,12 +957,12 @@ export default function App() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => navigator.clipboard.writeText(sceneDna)}
-                            className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white transition-colors"
+                            className="p-1 rounded hover:bg-white/10 text-white/55 hover:text-white transition-colors"
                             title="Copy Scene DNA"
                           ><Copy size={11} /></button>
                           <button
                             onClick={() => { setSceneDna(''); setBuiltPrompt(''); }}
-                            className="p-1 rounded hover:bg-red-500/10 text-white/20 hover:text-red-400 transition-colors"
+                            className="p-1 rounded hover:bg-red-500/10 text-white/65 hover:text-red-400 transition-colors"
                             title="Clear Scene DNA"
                           ><X size={11} /></button>
                         </div>
@@ -986,8 +986,8 @@ export default function App() {
           {/* DNA Edit Instruction (one-shot — cleared after Apply) */}
           <form onSubmit={handleEditSubmit} className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-[10px] text-white/40 uppercase tracking-widest">Edit DNA Instruction</h3>
-              <span className="text-[9px] text-white/25">Cleared after Apply</span>
+              <h3 className="text-[10px] text-white/65 uppercase tracking-widest">Edit DNA Instruction</h3>
+              <span className="text-[9px] text-white/50">Cleared after Apply</span>
             </div>
             <div className="relative">
               <textarea
@@ -995,11 +995,11 @@ export default function App() {
                 onChange={e => setEditInstruction(e.target.value)}
                 disabled={isBusy}
                 placeholder="e.g. 'add a scar on left jaw', 'change eye color to green'…"
-                className="w-full h-16 bg-black/40 border border-white/10 rounded-xl p-3 pr-28 text-xs focus:outline-none focus:border-blue-500/40 transition-colors placeholder:text-white/25 disabled:opacity-50 resize-none custom-scrollbar"
+                className="w-full h-16 bg-black/40 border border-white/10 rounded-xl p-3 pr-28 text-xs focus:outline-none focus:border-blue-500/40 transition-colors placeholder:text-white/35 disabled:opacity-50 resize-none custom-scrollbar"
               />
               {editInstruction && !isBusy && (
                 <button type="button" onClick={() => setEditInstruction('')} aria-label="Clear edit instruction"
-                  className="absolute top-1.5 left-1.5 p-1.5 rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-all z-10">
+                  className="absolute top-1.5 left-1.5 p-1.5 rounded text-white/50 hover:text-white/60 hover:bg-white/10 transition-all z-10">
                   <X size={9} />
                 </button>
               )}
@@ -1026,7 +1026,7 @@ export default function App() {
 
           {/* Quick Style Presets */}
           <div className="flex flex-col min-h-0">
-            <h3 className="text-[10px] text-white/40 uppercase tracking-widest mb-2 shrink-0">Quick Styles</h3>
+            <h3 className="text-[10px] text-white/65 uppercase tracking-widest mb-2 shrink-0">Quick Styles</h3>
             <div className="grid grid-cols-2 gap-1.5 overflow-y-auto custom-scrollbar max-h-[130px] pr-1">
               {SCENE_PRESETS.map(p => (
                 <button
@@ -1034,13 +1034,13 @@ export default function App() {
                   className="px-2.5 py-2 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-yellow-500/30 text-left transition-all disabled:opacity-40 focus:outline-none focus:ring-1 focus:ring-yellow-500/40 w-full"
                 >
                   <span className="text-[11px] font-medium text-white/90 block truncate">{p.name}</span>
-                  <span className="text-[9px] text-white/35 block truncate">{p.hook}</span>
+                  <span className="text-[9px] text-white/60 block truncate">{p.hook}</span>
                 </button>
               ))}
             </div>
             {userPresets.length > 0 && (
               <div className="mt-2">
-                <h4 className="text-[9px] text-white/25 uppercase tracking-widest mb-1.5">Saved</h4>
+                <h4 className="text-[9px] text-white/50 uppercase tracking-widest mb-1.5">Saved</h4>
                 <div className="grid grid-cols-2 gap-1.5 overflow-y-auto custom-scrollbar max-h-[100px] pr-1">
                   {userPresets.map(p => (
                     <div key={p.id} className="relative group/preset">
@@ -1053,7 +1053,7 @@ export default function App() {
                       </button>
                       <button
                         onClick={() => handleDeletePreset(p.id)}
-                        className="absolute top-1 right-1 opacity-0 group-hover/preset:opacity-100 text-white/30 hover:text-red-400 transition-all p-1.5 rounded"
+                        className="absolute top-1 right-1 opacity-0 group-hover/preset:opacity-100 text-white/55 hover:text-red-400 transition-all p-1.5 rounded"
                         aria-label={`Удалить пресет ${p.name}`}
                       >
                         <X size={8} />
@@ -1089,7 +1089,7 @@ export default function App() {
                     ))}
                   </optgroup>
                 </select>
-                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/65 pointer-events-none" />
               </div>
               <div className="relative w-24">
                 <select value={aspectRatio} onChange={e => setAspectRatio(e.target.value)}
@@ -1098,7 +1098,7 @@ export default function App() {
                     <option key={r} value={r} className="bg-[#0f0f11]">{r}</option>
                   ))}
                 </select>
-                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/65 pointer-events-none" />
               </div>
             </div>
 
@@ -1112,7 +1112,7 @@ export default function App() {
                   <option value="x3"   className="bg-[#0f0f11]">Upscale: 3×</option>
                   <option value="x4"   className="bg-[#0f0f11]">Upscale: 4×</option>
                 </select>
-                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/65 pointer-events-none" />
               </div>
               <div className="relative w-24">
                 <select value={sampleCount} onChange={e => setSampleCount(Number(e.target.value))}
@@ -1122,21 +1122,21 @@ export default function App() {
                   <option value={3} className="bg-[#0f0f11]">3 images</option>
                   <option value={4} className="bg-[#0f0f11]">4 images</option>
                 </select>
-                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/65 pointer-events-none" />
               </div>
             </div>
 
             {/* Prompt Editor */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-white/40 uppercase tracking-widest">Prompt</span>
+                <span className="text-[10px] text-white/65 uppercase tracking-widest">Prompt</span>
                 <div className="flex items-center gap-1">
                   {builtPrompt && (
                     <button
                       onClick={() => setBuiltPrompt('')}
                       disabled={isBusy}
                       title="Clear prompt"
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-red-500/10 hover:border-red-500/30 text-[10px] text-white/35 hover:text-red-400 transition-all disabled:opacity-30"
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-red-500/10 hover:border-red-500/30 text-[10px] text-white/60 hover:text-red-400 transition-all disabled:opacity-30"
                     >
                       <X size={9} />Clear
                     </button>
@@ -1146,7 +1146,7 @@ export default function App() {
                       onClick={handleEnhancePrompt}
                       disabled={isBusy}
                       title="Enhance prompt: add optics, lighting Kelvin, film stock, skin SSS"
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-purple-500/15 hover:border-purple-500/40 text-[10px] text-white/35 hover:text-purple-400 transition-all disabled:opacity-30"
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-purple-500/15 hover:border-purple-500/40 text-[10px] text-white/60 hover:text-purple-400 transition-all disabled:opacity-30"
                     >
                       {isEnhancingPrompt
                         ? <RefreshCw size={9} className="animate-spin" />
@@ -1158,7 +1158,7 @@ export default function App() {
                     onClick={handleBuildPrompt}
                     disabled={isBusy || !isDnaReady}
                     title={!isDnaReady ? 'Extract DNA first (Step 1)' : 'Build cinematic prompt from DNA + scene'}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-yellow-500/40 text-[10px] text-white/35 hover:text-yellow-400 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-yellow-500/40 text-[10px] text-white/60 hover:text-yellow-400 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     {isBuildingPrompt
                       ? <><RefreshCw size={10} className="animate-spin" />Building…</>
@@ -1172,13 +1172,13 @@ export default function App() {
                 disabled={isBusy}
                 placeholder="Type prompt manually here — Generate uses this directly as-is.&#10;Or click 'Build from DNA' to auto-generate from extracted identity + scene instructions."
                 rows={5}
-                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-[11px] font-mono text-yellow-100/60 focus:outline-none focus:border-yellow-500/30 transition-colors placeholder:text-white/20 disabled:opacity-50 resize-none custom-scrollbar leading-relaxed"
+                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-[11px] font-mono text-yellow-100/60 focus:outline-none focus:border-yellow-500/30 transition-colors placeholder:text-white/30 disabled:opacity-50 resize-none custom-scrollbar leading-relaxed"
               />
               {builtPrompt && (
                 <button
                   onClick={handleSavePreset}
                   disabled={isBusy}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-yellow-500/30 text-[10px] text-white/35 hover:text-yellow-400 transition-all disabled:opacity-30"
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-yellow-500/30 text-[10px] text-white/60 hover:text-yellow-400 transition-all disabled:opacity-30"
                   title="Сохранить промпт как пресет"
                 >
                   <Bookmark size={10} />
@@ -1233,7 +1233,7 @@ export default function App() {
               {selectedImage?.startsWith('data:image/png') && isDnaReady && (
                 <button
                   onClick={handleSaveWithDna}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-yellow-500/30 text-[10px] text-white/35 hover:text-yellow-400 transition-all"
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-yellow-500/30 text-[10px] text-white/60 hover:text-yellow-400 transition-all"
                   title="Embed DNA JSON into PNG and download"
                 >
                   <Dna size={11} />
@@ -1248,7 +1248,7 @@ export default function App() {
             {selectedImage ? (
               <img src={selectedImage} alt="Generated" className="absolute inset-0 w-full h-full object-contain p-2" />
             ) : (
-              <div className="text-center p-6 text-white/25 flex flex-col items-center gap-3">
+              <div className="text-center p-6 text-white/50 flex flex-col items-center gap-3">
                 <div className="p-4 rounded-full bg-white/5"><Wand2 size={30} className="opacity-40" /></div>
                 <p className="text-xs">Generated image will appear here</p>
               </div>
@@ -1267,9 +1267,9 @@ export default function App() {
 
           {/* Model metadata badge — shown after generation */}
           {selectedImage && !isGenerating && (
-            <div className="flex items-center gap-1.5 text-[9px] text-white/30 px-0.5">
+            <div className="flex items-center gap-1.5 text-[9px] text-white/55 px-0.5">
               <span className="text-white/50 font-medium">{getModelLabel(imageModel)}</span>
-              <span className="text-white/15">·</span>
+              <span className="text-white/55">·</span>
               <span className="font-mono">{imageModel}</span>
               {/* Thought signature indicator */}
               {(() => {
@@ -1287,12 +1287,15 @@ export default function App() {
           {/* Variations (multiple samples) */}
           {generatedImages.length > 1 && (
             <div>
-              <h3 className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Variations</h3>
+              <h3 className="text-[10px] text-white/65 uppercase tracking-widest mb-2">Variations</h3>
               <div className="grid grid-cols-4 gap-2">
                 {generatedImages.map((url, i) => (
                   <div
-                    key={i}
+                    key={url}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setSelectedImage(url)}
+                    onKeyDown={(e) => e.key === 'Enter' && setSelectedImage(url)}
                     className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${selectedImage === url ? 'border-yellow-500' : 'border-white/10 hover:border-white/30'}`}
                   >
                     <img src={url} alt={`Variation ${i + 1}`} className="w-full h-full object-cover" />
@@ -1315,20 +1318,20 @@ export default function App() {
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setCloudHistory([])}
-                  className="text-white/30 hover:text-red-400 transition-colors"
+                  className="text-white/55 hover:text-red-400 transition-colors"
                   title="Очистить список"
                 >
                   <History size={12} />
                 </button>
-                <h3 className="text-[10px] text-white/40 uppercase tracking-widest">История</h3>
+                <h3 className="text-[10px] text-white/65 uppercase tracking-widest">История</h3>
                 {cloudHistory.length > 0 && (
-                  <span className="text-[9px] text-white/25">{cloudHistory.length}</span>
+                  <span className="text-[9px] text-white/50">{cloudHistory.length}</span>
                 )}
               </div>
               <button
                 onClick={loadCloudHistory}
                 disabled={cloudHistoryLoading}
-                className="text-white/30 hover:text-white/70 transition-colors disabled:opacity-30"
+                className="text-white/55 hover:text-white/70 transition-colors disabled:opacity-30"
                 title="Обновить из базы"
               >
                 <RefreshCw size={11} className={cloudHistoryLoading ? 'animate-spin' : ''} />
@@ -1336,11 +1339,11 @@ export default function App() {
             </div>
 
             {cloudHistoryLoading && cloudHistory.length === 0 && (
-              <p className="text-[10px] text-white/25 text-center py-4">Загрузка...</p>
+              <p className="text-[10px] text-white/50 text-center py-4">Загрузка...</p>
             )}
 
             {!cloudHistoryLoading && cloudHistory.length === 0 && (
-              <p className="text-[10px] text-white/25 text-center py-4">Нет сохранённых генераций</p>
+              <p className="text-[10px] text-white/50 text-center py-4">Нет сохранённых генераций</p>
             )}
 
             <div className="overflow-y-auto custom-scrollbar flex-1 min-h-0 mt-2">
@@ -1364,7 +1367,7 @@ export default function App() {
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <ImageIcon size={14} className="text-white/20" />
+                          <ImageIcon size={14} className="text-white/65" />
                         </div>
                       )}
                       <div className="absolute inset-x-0 bottom-0 p-1 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1399,24 +1402,24 @@ export default function App() {
                 <Dna size={14} className="text-yellow-500/70" />
                 <span className="text-sm font-semibold text-white/80">DNA Library</span>
                 {dnaLibrary.length > 0 && (
-                  <span className="text-[10px] text-white/30">{dnaLibrary.length}</span>
+                  <span className="text-[10px] text-white/55">{dnaLibrary.length}</span>
                 )}
               </div>
-              <button onClick={() => setDnaLibraryOpen(false)} aria-label="Close DNA Library" className="p-1.5 rounded text-white/30 hover:text-white/60 transition-colors">
+              <button onClick={() => setDnaLibraryOpen(false)} aria-label="Close DNA Library" className="p-1.5 rounded text-white/55 hover:text-white/60 transition-colors">
                 <X size={14} />
               </button>
             </div>
 
             {/* Save current DNA */}
             <div className="px-4 py-3 border-b border-white/10 shrink-0">
-              <p className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Save Current DNA</p>
+              <p className="text-[10px] text-white/65 uppercase tracking-widest mb-2">Save Current DNA</p>
               <div className="flex gap-2">
                 <input
                   value={dnaLibraryName}
                   onChange={e => setDnaLibraryName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleSaveToDnaLibrary(); }}
                   placeholder="Character name…"
-                  className="flex-1 px-2.5 py-1.5 rounded-lg bg-black/40 border border-white/10 text-xs focus:outline-none focus:border-yellow-500/50 text-white placeholder:text-white/25"
+                  className="flex-1 px-2.5 py-1.5 rounded-lg bg-black/40 border border-white/10 text-xs focus:outline-none focus:border-yellow-500/50 text-white placeholder:text-white/35"
                 />
                 <button
                   onClick={handleSaveToDnaLibrary}
@@ -1428,17 +1431,17 @@ export default function App() {
                 </button>
               </div>
               {!isDnaReady && (
-                <p className="text-[9px] text-white/25 mt-1">Extract character DNA first (Step 1)</p>
+                <p className="text-[9px] text-white/50 mt-1">Extract character DNA first (Step 1)</p>
               )}
             </div>
 
             {/* Profile list */}
             <div className="flex-1 overflow-y-auto custom-scrollbar">
               {dnaLibraryLoading && (
-                <p className="text-[10px] text-white/30 text-center py-6">Loading…</p>
+                <p className="text-[10px] text-white/55 text-center py-6">Loading…</p>
               )}
               {!dnaLibraryLoading && dnaLibrary.length === 0 && (
-                <p className="text-[10px] text-white/25 text-center py-6">No saved profiles yet</p>
+                <p className="text-[10px] text-white/50 text-center py-6">No saved profiles yet</p>
               )}
               {dnaLibrary.map(profile => {
                 const identity = (profile.dna_json?.identity as string | undefined)?.slice(0, 90) ?? '';
@@ -1457,9 +1460,9 @@ export default function App() {
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-white/80 truncate">{profile.name}</p>
                       {identity && (
-                        <p className="text-[10px] text-white/30 mt-0.5 line-clamp-2 leading-relaxed">{identity}</p>
+                        <p className="text-[10px] text-white/55 mt-0.5 line-clamp-2 leading-relaxed">{identity}</p>
                       )}
-                      <p className="text-[9px] text-white/20 mt-1">{date}</p>
+                      <p className="text-[9px] text-white/65 mt-1">{date}</p>
                     </div>
                     {/* Actions */}
                     <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1559,7 +1562,7 @@ export default function App() {
               </button>
             </div>
             {historyModal.built_prompt && (
-              <p className="px-3 pb-3 text-[9px] text-white/25 font-mono line-clamp-2">
+              <p className="px-3 pb-3 text-[9px] text-white/50 font-mono line-clamp-2">
                 {historyModal.built_prompt}
               </p>
             )}
