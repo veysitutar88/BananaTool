@@ -503,7 +503,7 @@ export default function App() {
           image_url:    imageUrl ?? undefined,
         }))
         .then(() => loadCloudHistory())
-        .catch(() => { /* storage errors are non-fatal — UI already shows the image */ });
+        .catch((err) => { console.warn('[Storage] upload/save failed:', err); });
     } catch (err: unknown) {
       setGenerateError(err instanceof Error ? err.message : 'Generation failed. Check model access and quota.');
     } finally {
@@ -627,7 +627,7 @@ export default function App() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8 flex flex-col gap-5">
+    <div className="h-screen overflow-hidden p-4 md:p-6 lg:p-8 flex flex-col gap-5">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="glass-panel rounded-2xl p-4 flex items-center justify-between">
@@ -645,7 +645,7 @@ export default function App() {
 
 
       {/* ── Main 3-column Grid ─────────────────────────────────────────────── */}
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-5 auto-rows-fr">
+      <main className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-3 gap-5 auto-rows-fr min-h-0">
 
         {/* ══ Column 1: Reference Images + DNA ══════════════════════════════ */}
         <motion.section
@@ -1214,7 +1214,7 @@ export default function App() {
         {/* ══ Column 3: Result + History ════════════════════════════════════ */}
         <motion.section
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }}
-          className="glass-panel rounded-2xl p-5 flex flex-col gap-4"
+          className="glass-panel rounded-2xl p-5 flex flex-col gap-3 overflow-hidden min-h-0"
         >
           {/* Header */}
           <div className="flex items-center justify-between text-white/80">
@@ -1244,7 +1244,7 @@ export default function App() {
           </div>
 
           {/* Main Image */}
-          <div className="flex-1 min-h-[320px] rounded-xl border border-white/10 bg-black/20 flex items-center justify-center relative overflow-hidden">
+          <div className="shrink-0 h-[260px] rounded-xl border border-white/10 bg-black/20 flex items-center justify-center relative overflow-hidden">
             {selectedImage ? (
               <img src={selectedImage} alt="Generated" className="absolute inset-0 w-full h-full object-contain p-2" />
             ) : (
@@ -1313,7 +1313,13 @@ export default function App() {
           <div className="flex flex-col flex-1 min-h-0">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5">
-                <History size={12} className="text-white/40" />
+                <button
+                  onClick={() => setCloudHistory([])}
+                  className="text-white/30 hover:text-red-400 transition-colors"
+                  title="Очистить список"
+                >
+                  <History size={12} />
+                </button>
                 <h3 className="text-[10px] text-white/40 uppercase tracking-widest">История</h3>
                 {cloudHistory.length > 0 && (
                   <span className="text-[9px] text-white/25">{cloudHistory.length}</span>
@@ -1518,7 +1524,7 @@ export default function App() {
                     const res = await fetch(historyModal.image_url);
                     const blob = await res.blob();
                     const file = new File([blob], `history-${historyModal.id.slice(0, 8)}.png`, { type: blob.type });
-                    const slotKeys = ['r1', 'r2', 'r3', 'r4'] as const;
+                    const slotKeys = REFERENCE_SLOTS.map(s => s.id);
                     const emptySlot = slotKeys.find(id => !references[id]);
                     if (emptySlot) {
                       const objectUrl = URL.createObjectURL(blob);

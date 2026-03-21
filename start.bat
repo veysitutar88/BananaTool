@@ -1,11 +1,9 @@
 @echo off
-echo ==========================================
-echo Starting Nano Banana Studio...
-echo ==========================================
-echo.
-echo Make sure you have Node.js installed and have run 'npm install' at least once.
-echo The app will open in your default browser.
-echo.
+title Nano Banana Studio
 cd /d "%~dp0"
-call npm run dev -- --open
+echo.
+echo  Starting Nano Banana Studio...
+echo  Open browser: http://localhost:5173
+echo.
+npm run dev
 pause
