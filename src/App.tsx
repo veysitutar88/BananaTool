@@ -1313,7 +1313,13 @@ export default function App() {
           <div className="flex flex-col flex-1 min-h-0">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5">
-                <History size={12} className="text-white/40" />
+                <button
+                  onClick={() => setCloudHistory([])}
+                  className="text-white/30 hover:text-red-400 transition-colors"
+                  title="Очистить список"
+                >
+                  <History size={12} />
+                </button>
                 <h3 className="text-[10px] text-white/40 uppercase tracking-widest">История</h3>
                 {cloudHistory.length > 0 && (
                   <span className="text-[9px] text-white/25">{cloudHistory.length}</span>
