@@ -1214,7 +1214,7 @@ export default function App() {
         {/* ══ Column 3: Result + History ════════════════════════════════════ */}
         <motion.section
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }}
-          className="glass-panel rounded-2xl p-5 flex flex-col gap-4 overflow-hidden min-h-0"
+          className="glass-panel rounded-2xl p-5 flex flex-col gap-3 overflow-hidden min-h-0"
         >
           {/* Header */}
           <div className="flex items-center justify-between text-white/80">
@@ -1244,7 +1244,7 @@ export default function App() {
           </div>
 
           {/* Main Image */}
-          <div className="flex-1 min-h-[320px] rounded-xl border border-white/10 bg-black/20 flex items-center justify-center relative overflow-hidden">
+          <div className="shrink-0 h-[260px] rounded-xl border border-white/10 bg-black/20 flex items-center justify-center relative overflow-hidden">
             {selectedImage ? (
               <img src={selectedImage} alt="Generated" className="absolute inset-0 w-full h-full object-contain p-2" />
             ) : (
